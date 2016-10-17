@@ -6,7 +6,6 @@
   "gypfile": true,
   "scripts": {
     "test": "mocha -R spec spec",
-    "preinstall": "npm install node-pre-gyp",
     "install": "node-pre-gyp install --fallback-to-build"
   },
   "repository": {
@@ -30,10 +29,10 @@
   "dependencies": {
     "bindings": "^1.2.1",
     "nan": "^2.4.0",
+    "aws-sdk": "^2.6.9",
     "node-pre-gyp": "^0.6.30"
   },
   "devDependencies": {
-    "aws-sdk": "^2.6.9",
     "mocha": "^3.1.2"
   },
   "binary": {
@@ -41,6 +40,6 @@
     "module_path": "./build/{module_name}/v{version}/{configuration}/{node_abi}-{platform}-{arch}/",
     "remote_path": "./{module_name}/v{version}/{configuration}/",
     "package_name": "{node_abi}-{platform}-{arch}.tar.gz",
-    "host": "https://node-fast-template-matcher.s3-us-west-1.amazonaws.com"
+    "host": "https://node-fast-template-matcher.s3-us-west-2.amazonaws.com"
   }
 }
