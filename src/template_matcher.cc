@@ -9,10 +9,7 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
         int downPyrs,
         int searchExpansion)
 {
-  std::cout << "Source: " << source << "\n";
   cv::Mat sourceImg = cv::imread(source);
-
-  std::cout << "Template: " << target << "\n";
   cv::Mat templateImg = cv::imread(target);
 
   return fastMatchTemplate(sourceImg, templateImg, matchPercentage, maximumMatches, downPyrs, searchExpansion);
