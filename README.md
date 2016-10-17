@@ -41,6 +41,8 @@ npm install --save fast-template-matcher
 
 ### node-gyp
 
+### opencv
+
 ```
 npm install node-gyp -g
 ```
