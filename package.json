@@ -1,8 +1,8 @@
 {
-  "name": "node-fast-template-matcher",
+  "name": "fast-template-matcher",
   "version": "1.0.0",
   "description": "Nodejs native extension to search subimage inside an image using opencv cv::matchTemplate and cv::minMaxLoc.",
-  "main": "index.js",
+  "main": "lib/main.js",
   "gypfile": true,
   "scripts": {
     "test": "mocha -R spec spec"

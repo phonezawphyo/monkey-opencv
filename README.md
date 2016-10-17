@@ -2,6 +2,35 @@
 
 Nodejs native extension to search subimage inside an image using opencv `cv::matchTemplate` and `cv::minMaxLoc`.
 
+# Usage
+
+```
+const ftm = require('fast-template-matcher');
+
+ftm.findSubImage({
+  source: 'source.png',
+  template: 'template.png',
+  matchPercent: 70,
+  maximumMatches: 1,
+  downPyramids: 1,
+  searchExpansion: 15,
+}, function(matches){
+  console.log('Results async: ',matches);
+})
+
+var resultsSync = ftm.findSubImage({
+  source: 'source.png',
+  template: 'template.png',
+  matchPercent: 70,
+  maximumMatches: 1,
+  downPyramids: 1,
+  searchExpansion: 15,
+})
+
+console.log('Results sync: ', resultsSync);
+
+```
+
 # Installation
 
 ```
