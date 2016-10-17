@@ -5,7 +5,9 @@
   "main": "lib/main.js",
   "gypfile": true,
   "scripts": {
-    "test": "mocha -R spec spec"
+    "test": "mocha -R spec spec",
+    "preinstall": "npm install node-pre-gyp",
+    "install": "node-pre-gyp install --fallback-to-build"
   },
   "repository": {
     "type": "git",
@@ -27,9 +29,16 @@
   "homepage": "https://github.com/phonezawphyo/node-fast-template-matcher#readme",
   "dependencies": {
     "bindings": "^1.2.1",
-    "nan": "^2.4.0"
+    "nan": "^2.4.0",
+    "node-pre-gyp": "^0.6.30"
   },
   "devDependencies": {
+    "aws-sdk": "^2.6.9",
     "mocha": "^3.1.2"
+  },
+  "binary": {
+    "module_name": "fast_template_matcher",
+    "module_path": "t",
+    "host": "https://your_module.s3-us-west-1.amazonaws.com"
   }
 }
