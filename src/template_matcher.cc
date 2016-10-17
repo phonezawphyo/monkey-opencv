@@ -1,7 +1,7 @@
+#define NOMINMAX
 #include <opencv/highgui.h>
 #include <nan.h>
 #include "template_matcher.h"
-#undef max
 
 using namespace v8;
 
