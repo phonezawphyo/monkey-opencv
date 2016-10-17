@@ -2,24 +2,14 @@
   "targets": [ 
     { 
       "target_name": "testme",
+
       "sources": [
          "src/template_matcher.cc",
+         "src/addon.cc",
        ],
+
       "include_dirs": [ "<!(node -e \"require('nan')\")" ],
-#    },
-#    { 
-#      "target_name": "opencv",
-#      "sources": [ 
-#        "src/OpenCV.cc",
-#        "src/Contours.cc",
-#        "src/ImgProc.cc",
-#        "src/Matrix.cc",
-#        "src/OpenCV.cc"
-#      ],
-#
-      "libraries": [
-        "<!@(node utils/find-opencv.js --libs | sed -e \"s/-l-framework/-framework/g\")",
-      ],
+
       # For windows
 
       "include_dirs": [
@@ -32,12 +22,20 @@
 
       "conditions": [
         [ "OS==\"linux\" or OS==\"freebsd\" or OS==\"openbsd\" or OS==\"solaris\" or OS==\"aix\"", {
+            "libraries": [
+              "<!@(node utils/find-opencv.js --libs)",
+            ],
+
             "cflags": [
               "<!@(node utils/find-opencv.js --cflags)",
               "-Wall"
             ]
         }],
         [ "OS==\"win\"", {
+            "libraries": [
+              "<!@(node utils/find-opencv.js --libs)",
+            ],
+
             "cflags": [
               "-Wall"
             ],
@@ -53,6 +51,11 @@
         }],
         [ # cflags on OS X are stupid and have to be defined like this
           "OS==\"mac\"", {
+
+            "libraries": [
+              "<!@(node utils/find-opencv.js --libs | sed -e \"s/-l-framework/-framework/g\")",
+            ],
+
             "xcode_settings": {
               "OTHER_CFLAGS": [
                 "-mmacosx-version-min=10.7",

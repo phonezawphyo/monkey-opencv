@@ -1,80 +1,55 @@
-#include <node.h>
-#include <nan.h>
-#include <opencv/cv.h>
+#include "template_matcher.h"
 
-using namespace v8;
+std::vector<Point2D> TemplateMatcher::multipleMinMaxLoc(const cv::Mat &image, int maximumMatches, int method)
+{
+  std::vector<Point2D> locations(maximumMatches);
 
-void testMe(const Nan::FunctionCallbackInfo<Value>& args) {
-	Isolate* isolate = args.GetIsolate();
-	printf("Hello c!\n");
-  args.GetReturnValue().Set(Nan::New("world").ToLocalChecked());
+  std::vector<float> matches(maximumMatches, (method == CV_TM_SQDIFF_NORMED) ? std::numeric_limits<float>::max() : -std::numeric_limits<float>::max());
+	cv::Size size = image.size();
+
+	// extract the raw data for analysis
+	for(int y = 0; y < size.height; ++y)
+	{
+		for(int x = 0; x < size.width; ++x)
+		{
+			float data = image.at<float>(y, x);
+
+			// insert the data value into the array if it is greater than any of the
+			//  other array values, and bump the other values below it, down
+			for(int j = 0; j < maximumMatches; ++j)
+			{
+				// require at least 50% confidence on the sub-sampled image
+				// in order to make this as fast as possible
+				if((method == CV_TM_SQDIFF_NORMED && data < 0.5f && data < matches.at(j)) ||
+						(method != CV_TM_SQDIFF_NORMED && data > 0.5f && data > matches.at(j)))
+				{
+					// move the maxima down
+					for(int k = maximumMatches - 1; k > j; --k)
+					{
+						matches[k] = matches.at(k-1);
+						locations[k] = locations.at(k-1);
+					}
+
+					// insert the value
+					matches[j] = data;
+					locations[j].setPoint(x, y);
+					break;
+				}
+			}
+		}
+	}
+
+	return locations;
 }
 
-void findSubImg(const Nan::FunctionCallbackInfo<Value>& args) {
-  Isolate* isolate = Isolate::GetCurrent();
-  HandleScope scope(isolate);
-
-	printf("SubImage!\n");
-
-  //int matchPercentage = 0;
-  //int maximumMatches = 0;
-  //int downPyrs = 0;
-  //int searchExpansion = 0;
-
-  if (args.Length() != 1) {
-    Nan::ThrowTypeError("Wrong number of arguments");
-    return;
-  }
-
-  Local<Object> o = args[0].As<Object>();
-
-  if (!o->IsObject()) {
-    Nan::ThrowTypeError("Wrong arguments");
-    return;
-  }
-
-  Local<String> strSource = Nan::New("source").ToLocalChecked();
-  Local<String> strTemplate = Nan::New("template").ToLocalChecked();
-
-  if (!o->Has(strSource)) {
-    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Missing argument 'source'")));
-  }
-  Local<Object> source = o->Get(strSource).As<Object>();
-
-  Local<String> strData = Nan::New("data").ToLocalChecked();
-  Local<Value> buffer = source->Get(strData);
-  std::cout << "Buffer: " << (char*)node::Buffer::Data(buffer);
-  std::cout << "Buffer: " << *Nan::Utf8String(buffer->ToString());
-  //std::cout << "Buffer: " << (char*)buffer.data();
-
-  if (!o->Has(strTemplate)) {
-    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Missing argument 'template'")));
-  } 
-
-  // Invoke oncomplete callback
-  Local<String> strOnComplete = Nan::New("oncomplete").ToLocalChecked();
-
-  if (o->Has(strOnComplete)) {
-    const unsigned argc = 2;
-    v8::Local<v8::Value> argv[argc] = {
-      Nan::New("hello world").ToLocalChecked(),
-      Nan::New("hello kitty").ToLocalChecked() };
-    Local<Function> oncomplete = o->Get(strOnComplete).As<Function>();
-    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), oncomplete, argc, argv);
-  }
-
-  //args.GetReturnValue().Set(Nan::New("world").ToLocalChecked());
-}
-
-
-void fastMatchTemplate(const cv::Mat &source,
+MatchingPointList TemplateMatcher::fastMatchTemplate(const cv::Mat &source,
 		const cv::Mat &target,
 		int matchPercentage,
 		int maximumMatches,
 		int downPyrs,
 		int searchExpansion)
 {
-	//MatchingPointList matchingPointList;
+	MatchingPointList matchingPointList;
 
 	try
 	{
@@ -117,42 +92,51 @@ void fastMatchTemplate(const cv::Mat &source,
 		resultSize.width = smallSourceSize.width - smallTargetSize.width + 1;
 		resultSize.height = smallSourceSize.height - smallTargetSize.height + 1;
 
+    int method = CV_TM_SQDIFF_NORMED;
+
 		cv::Mat result(resultSize, CV_32FC1);
 		//cv::matchTemplate(copyOfSource, copyOfTarget, result, toOpenCVMethod(method));
-		cv::matchTemplate(copyOfSource, copyOfTarget, result, CV_TM_SQDIFF);
+		cv::matchTemplate(copyOfSource,
+        copyOfTarget,
+        result,
+        method);
+    
 
 		// find the top match locations
-    /*
-		QVector<QPoint> locations = multipleMinMaxLoc(result, maximumMatches, method);
-    */
+    std::vector<Point2D> locations = multipleMinMaxLoc(result,
+			 maximumMatches,
+			 method);
 
 		// search the large images at the returned locations
 		sourceSize = source.size();
 		targetSize = target.size();
 
-		//int twoPowerNumDownPyrs = std::pow(2.0f, downPyrs);
+    std::cout << "Test: " << locations.size() << "\n";
+
+		int twoPowerNumDownPyrs = std::pow(2.0f, downPyrs);
 
 		// create a copy of the source in order to adjust its ROI for searching
 		for(int currMax = 0; currMax < maximumMatches; ++currMax)
 		{
 			// transform the point to its corresponding point in the larger image
-			/*
-			QPoint &currMaxLocation = locations[currMax];
+			Point2D &currMaxLocation = locations[currMax];
 			currMaxLocation *= twoPowerNumDownPyrs;
-			currMaxLocation.setX(currMaxLocation.x() + targetSize.width / 2);
-			currMaxLocation.setY(currMaxLocation.y() + targetSize.height / 2);
+			currMaxLocation.setPoint(
+          currMaxLocation.x() + targetSize.width / 2,
+          currMaxLocation.y() + targetSize.height / 2);
 
-			const QPoint &searchPoint = locations.at(currMax);
+
+			const Point2D &searchPoint = locations.at(currMax);
 
 			// if we are searching for multiple targets and we have found a target or
 			//  multiple targets, we don't want to search in the same location(s) again
-			if(maximumMatches > 1 && !matchingPointList.isEmpty())
+			if(maximumMatches > 1 && !matchingPointList.empty())
 			{
 				bool thisTargetFound = false;
 
-				for(int currPoint = 0; currPoint < matchingPointList.size(); currPoint++)
+				for(int currPoint = 0;(unsigned long) currPoint < matchingPointList.size(); currPoint++)
 				{
-					const QPoint &foundPoint = matchingPointList.at(currPoint).position;
+					const Point2D &foundPoint = matchingPointList.at(currPoint).position;
 					if(std::abs(searchPoint.x() - foundPoint.x()) <= searchExpansion * 2 &&
 							std::abs(searchPoint.y() - foundPoint.y()) <= searchExpansion * 2)
 					{
@@ -202,7 +186,7 @@ void fastMatchTemplate(const cv::Mat &source,
 			resultSize.height = searchRoi.height - target.size().height + 1;
 
 			result = cv::Mat(resultSize, CV_32FC1);
-			cv::matchTemplate(searchImage, target, result, toOpenCVMethod(method));
+			cv::matchTemplate(searchImage, target, result, method);
 
 			// find the best match location
 			double minValue;
@@ -212,8 +196,8 @@ void fastMatchTemplate(const cv::Mat &source,
 
 			cv::minMaxLoc(result, &minValue, &maxValue, &minLoc, &maxLoc);
 
-			double &value = (method == SquaredDifferenceMethod) ? minValue : maxValue;
-			cv::Point &loc = (method == SquaredDifferenceMethod) ? minLoc : maxLoc;
+			double &value = (method == CV_TM_SQDIFF_NORMED) ? minValue : maxValue;
+			cv::Point &loc = (method == CV_TM_SQDIFF_NORMED) ? minLoc : maxLoc;
 
 			value *= 100.0;
 
@@ -221,13 +205,13 @@ void fastMatchTemplate(const cv::Mat &source,
 			loc.x += searchRoi.x + target.size().width / 2;
 			loc.y += searchRoi.y + target.size().height / 2;
 
-			if(method == SquaredDifferenceMethod)
+			if(method == CV_TM_SQDIFF_NORMED)
 				value = 100.0f - value;
 
 			if(value >= matchPercentage)
 			{
 				// add the point to the list
-				matchingPointList.append(MatchingPoint(QPoint(loc.x, loc.y), value, sourceIndex));
+				matchingPointList.push_back(MatchingPoint(Point2D(loc.x, loc.y), value, 0));
 
 				// if we are only looking for a single target, we have found it, so we
 				//  can return
@@ -235,8 +219,9 @@ void fastMatchTemplate(const cv::Mat &source,
 					break;
 			}
 			else
+      {
 				break; // skip the rest
-			*/
+      }
 		}
 	}
 	catch(const cv::Exception &e)
@@ -248,58 +233,5 @@ void fastMatchTemplate(const cv::Mat &source,
 	}
 
 
-	//return matchingPointList;
+	return matchingPointList;
 }
-
-/*
-QVector<QPoint> OpenCVAlgorithms::multipleMinMaxLoc(const cv::Mat &image, int maximumMatches, AlgorithmMethod method)
-{
-	QVector<QPoint> locations(maximumMatches);
-	QVector<float> matches(maximumMatches, (method == SquaredDifferenceMethod) ? std::numeric_limits<float>::max() : -std::numeric_limits<float>::max());
-	cv::Size size = image.size();
-
-	// extract the raw data for analysis
-	for(int y = 0; y < size.height; ++y)
-	{
-		for(int x = 0; x < size.width; ++x)
-		{
-			float data = image.at<float>(y, x);
-
-			// insert the data value into the array if it is greater than any of the
-			//  other array values, and bump the other values below it, down
-			for(int j = 0; j < maximumMatches; ++j)
-			{
-				// require at least 50% confidence on the sub-sampled image
-				// in order to make this as fast as possible
-				if((method == SquaredDifferenceMethod && data < 0.5f && data < matches.at(j)) ||
-						(method != SquaredDifferenceMethod && data > 0.5f && data > matches.at(j)))
-				{
-					// move the maxima down
-					for(int k = maximumMatches - 1; k > j; --k)
-					{
-						matches[k] = matches.at(k-1);
-						locations[k] = locations.at(k-1);
-					}
-
-					// insert the value
-					matches[j] = data;
-					locations[j].setX(x);
-					locations[j].setY(y);
-					break;
-				}
-			}
-		}
-	}
-
-	return locations;
-}
-*/
-
-void init(Local<Object> exports) {
-  exports->Set(Nan::New("testMe").ToLocalChecked(),
-      Nan::New<v8::FunctionTemplate>(testMe)->GetFunction());
-  exports->Set(Nan::New("findSubImg").ToLocalChecked(),
-      Nan::New<v8::FunctionTemplate>(findSubImg)->GetFunction());
-}
-
-NODE_MODULE(testme, init)
