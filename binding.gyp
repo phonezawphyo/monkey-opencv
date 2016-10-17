@@ -1,7 +1,7 @@
 {
   "targets": [ 
     { 
-      "target_name": "testme",
+      "target_name": "fast_template_matcher",
 
       "sources": [
          "src/addon.cc",

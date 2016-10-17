@@ -1,5 +1,8 @@
 #include <opencv/highgui.h>
+#include <nan.h>
 #include "template_matcher.h"
+
+using namespace v8;
 
 MatchingPointList TemplateMatcher::fastMatchTemplate(
         const char* source,
@@ -9,11 +12,20 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
         int downPyrs,
         int searchExpansion)
 {
-  cv::Mat sourceImg = cv::imread(source);
-  cv::Mat templateImg = cv::imread(target);
+  cv::Mat sourceImg, templateImg;
 
-  return fastMatchTemplate(sourceImg, templateImg, matchPercentage, maximumMatches, downPyrs, searchExpansion);
+  sourceImg = cv::imread(source);
+  templateImg = cv::imread(target);
+
+  return fastMatchTemplate(
+      sourceImg,
+      templateImg,
+      matchPercentage,
+      maximumMatches,
+      downPyrs,
+      searchExpansion);
 }
+
 
 MatchingPointList TemplateMatcher::fastMatchTemplate(
     const cv::Mat &source,
@@ -82,8 +94,6 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
   // search the large images at the returned locations
   sourceSize = source.size();
   targetSize = target.size();
-
-  std::cout << "Test: " << locations.size() << "\n";
 
   int twoPowerNumDownPyrs = std::pow(2.0f, downPyrs);
 
@@ -199,6 +209,7 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
   return matchingPointList;
 }
 
+
 std::vector<Point2D> TemplateMatcher::multipleMinMaxLoc(
     const cv::Mat &image,
     int maximumMatches,
@@ -243,4 +254,3 @@ std::vector<Point2D> TemplateMatcher::multipleMinMaxLoc(
 
 	return locations;
 }
-

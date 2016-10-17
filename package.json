@@ -27,7 +27,6 @@
   "homepage": "https://github.com/phonezawphyo/node-fast-template-matcher#readme",
   "dependencies": {
     "bindings": "^1.2.1",
-    "nan": "^2.4.0",
-    "pngparse": "^2.0.1"
+    "nan": "^2.4.0"
   }
 }

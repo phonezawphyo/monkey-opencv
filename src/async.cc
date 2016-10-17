@@ -21,25 +21,16 @@ class FindImageWorker : public Nan::AsyncWorker {
     ~FindImageWorker() {}
 
     void Execute() {
-      Isolate* isolate = Isolate::GetCurrent();
-
-      try {
-        matches = TemplateMatcher::fastMatchTemplate(
-            source.c_str(),
-            target.c_str(), 
-            matchPercent,
-            maximumMatches,
-            downPyramids,
-            searchExpansion);
-      } catch(int e) {
-        isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "OpenCV error")));
-        return;
-      }
+      matches = TemplateMatcher::fastMatchTemplate(
+          source.c_str(),
+          target.c_str(), 
+          matchPercent,
+          maximumMatches,
+          downPyramids,
+          searchExpansion);
     }
 
-    void HandleOKCallback() {
-      Nan::EscapableHandleScope scope;
-
+    Local<Array> toResult() {
       Local<Array> array = Nan::New<Array>();
 
       for(std::vector<int>::size_type i = 0; i != matches.size(); i++) {
@@ -56,6 +47,13 @@ class FindImageWorker : public Nan::AsyncWorker {
         Nan::Set(array, i, pointObj);
       }
 
+      return array;
+    };
+
+    void HandleOKCallback() {
+      Nan::EscapableHandleScope scope;
+
+      Local<Array> array = toResult();
 
       Local<Value> argv[] = {
         array
@@ -133,7 +131,7 @@ NAN_METHOD(CalculateAsync) {
   }
 
   if (!o->Has(strTemplate)) {
-    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Missing argument 'template'")));
+    isolate->ThrowException(Exception::TypeError(Nan::New("Missing argument 'template'").ToLocalChecked()));
 		return;
   } 
 
@@ -146,13 +144,35 @@ NAN_METHOD(CalculateAsync) {
     return;
   }
 
-  Nan::Callback *callback = new Nan::Callback(info[1].As<Function>());
 
-  Nan::AsyncQueueWorker(new FindImageWorker(callback,
+  if (argc == 1) {
+    // Sync
+
+    Nan::Callback *callback = new Nan::Callback();
+    FindImageWorker *worker = new FindImageWorker(callback,
         std::string(*source),
         std::string(*tmpl),
         matchPercent,
         maximumMatches,
         downPyramids,
-        searchExpansion));
+        searchExpansion);
+    worker->Execute();
+    Local<Array> array = worker->toResult();
+
+    info.GetReturnValue().Set(array);
+
+  } else if (argc == 2) {
+    // Async
+
+    Nan::Callback *callback = new Nan::Callback(info[1].As<Function>());
+    FindImageWorker *worker = new FindImageWorker(callback,
+        std::string(*source),
+        std::string(*tmpl),
+        matchPercent,
+        maximumMatches,
+        downPyramids,
+        searchExpansion);
+    Nan::AsyncQueueWorker(worker);
+
+  }
 }
