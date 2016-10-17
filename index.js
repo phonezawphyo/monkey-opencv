@@ -1,8 +1,8 @@
-const testme = require('bindings')('fast_template_matcher.node');
+const search = require('bindings')('fast_template_matcher.node');
 
-testme.findSubImage({
-  source: 'images/screen.png',
-  template: 'images/g.png',
+search.findSubImage({
+  source: 'spec/fixtures/screen.png',
+  template: 'spec/fixtures/g.png',
   matchPercent: 70,
   maximumMatches: 1,
   downPyramids: 1,
@@ -12,9 +12,9 @@ testme.findSubImage({
 })
 
 
-var resultsSync = testme.findSubImage({
-  source: 'images/screen.png',
-  template: 'images/g.png',
+var resultsSync = search.findSubImage({
+  source: 'spec/fixtures/screen.png',
+  template: 'spec/fixtures/g.png',
   matchPercent: 70,
   maximumMatches: 1,
   downPyramids: 1,
