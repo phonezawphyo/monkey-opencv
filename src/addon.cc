@@ -1,14 +1,9 @@
-#include <node.h>
-#include <nan.h>
 #include "template_matcher.h"
 
-using namespace v8;
-
-void testMe(const Nan::FunctionCallbackInfo<Value>& args) {
-	Isolate* isolate = args.GetIsolate();
-	printf("Hello c!\n");
-  args.GetReturnValue().Set(Nan::New("world").ToLocalChecked());
-}
+#include <node.h>
+#include <opencv/cv.h>
+#include <opencv/highgui.h>
+#include "addon.h"
 
 void findSubImg(const Nan::FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = Isolate::GetCurrent();
@@ -35,51 +30,94 @@ void findSubImg(const Nan::FunctionCallbackInfo<Value>& args) {
     isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Missing argument 'source'")));
   }
 
-  Nan::Utf8String source(o->Get(strSource)->ToString());
-  std::cout << "Source: " << *source << "\n";
-  cv::Mat sourceImg = cv::imread(*source);
-
-  Nan::Utf8String tmpl(o->Get(strTemplate)->ToString());
-  std::cout << "Template: " << *tmpl<< "\n";
-  cv::Mat templateImg = cv::imread(*tmpl);
-
-  MatchingPointList matches = TemplateMatcher::fastMatchTemplate(sourceImg, templateImg, 90, 1, 1, 15);
-
-  std::cout << "match: x:" << matches.at(0).position.x() << " y:" << matches.at(0).position.y() ;
-
   if (!o->Has(strTemplate)) {
     isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "Missing argument 'template'")));
   } 
+
+  Nan::Utf8String source(o->Get(strSource)->ToString());
+  Nan::Utf8String tmpl(o->Get(strTemplate)->ToString());
+
+  int matchPercent = extractIntArgument("matchPercent", o, 70);
+  int maximumMatches = extractIntArgument("maximumMatches", o, 1);
+  int downPyramids = extractIntArgument("downPyramids", o, 1);
+  int searchExpansion = extractIntArgument("searchExpansion", o, 15);
+
+  if (matchPercent == -1 || maximumMatches == -1 || downPyramids == -1 || searchExpansion == -1) {
+    return;
+  }
+
+  MatchingPointList matches;
+
+  try {
+    matches = TemplateMatcher::fastMatchTemplate(
+        *source,
+        *tmpl, 
+        matchPercent,
+        maximumMatches,
+        downPyramids,
+        searchExpansion);
+  } catch(int e) {
+    isolate->ThrowException(Exception::TypeError(String::NewFromUtf8(isolate, "OpenCV error")));
+    return;
+  }
 
   // Invoke oncomplete callback
   Local<String> strOnComplete = Nan::New("oncomplete").ToLocalChecked();
 
   if (o->Has(strOnComplete)) {
-    const unsigned argc = 2;
-    v8::Local<v8::Value> argv[argc] = {
-      Nan::New("hello world").ToLocalChecked(),
-      Nan::New("hello kitty").ToLocalChecked() };
+    Local<Array> array = prepareResult(matches);
+
+    const unsigned argc = 1;
+    v8::Local<v8::Value> argv[argc] = { array };
     Local<Function> oncomplete = o->Get(strOnComplete).As<Function>();
+  
     Nan::MakeCallback(Nan::GetCurrentContext()->Global(), oncomplete, argc, argv);
   }
 
-  //args.GetReturnValue().Set(Nan::New("world").ToLocalChecked());
+  args.GetReturnValue().Set(Nan::True());
 }
 
-//cv::Mat toCVMat(const QImage &image)
-//{
-//  cv::Mat mat(image.height(), image.width(), CV_8UC4, const_cast<uchar *>(image.bits()), image.bytesPerLine());
-//  cv::Mat back(mat.rows, mat.cols, CV_8UC3);
-//  int from_to[] = {0,0,  1,1,  2,2};
-//
-//  cv::mixChannels(&mat, 1, &back, 1, from_to, 3);
-//
-//  return back;
-//}
+int extractIntArgument(const char * key, Local<Object> o, int defaultValue) {
+
+  Local<String> strKey = Nan::New(key).ToLocalChecked();
+
+  if (o->Has(strKey)) {
+    Local<Value> v = o->Get(strKey);
+
+    if (!v->IsNumber()) {
+      std::string s1 = "Wrong argument: ";
+      std::string s2 = key;
+      Nan::ThrowTypeError((s1 + s2).c_str());
+      return -1;
+    }
+
+    return v->NumberValue();
+  }
+
+  return defaultValue;
+}
+
+Local<Array> prepareResult(MatchingPointList matches) {
+    Local<Array> array = Nan::New<Array>();
+    
+    for(std::vector<int>::size_type i = 0; i != matches.size(); i++) {
+      MatchingPoint point = matches.at(i);
+      Local<Object> positionObj = Nan::New<Object>();
+      Local<Object> pointObj = Nan::New<Object>();
+
+      Nan::Set(positionObj, Nan::New("x").ToLocalChecked(),Nan::New(point.position.x()));
+      Nan::Set(positionObj, Nan::New("y").ToLocalChecked(),Nan::New(point.position.y()));
+      Nan::Set(pointObj, Nan::New("position").ToLocalChecked(),positionObj);
+      Nan::Set(pointObj, Nan::New("confidence").ToLocalChecked(),Nan::New(point.confidence));
+      Nan::Set(pointObj, Nan::New("imageIndex").ToLocalChecked(),Nan::New(point.imageIndex));
+
+      Nan::Set(array, i, pointObj);
+    }
+
+    return array;
+}
 
 void init(Local<Object> exports) {
-  exports->Set(Nan::New("testMe").ToLocalChecked(),
-      Nan::New<v8::FunctionTemplate>(testMe)->GetFunction());
   exports->Set(Nan::New("findSubImg").ToLocalChecked(),
       Nan::New<v8::FunctionTemplate>(findSubImg)->GetFunction());
 }

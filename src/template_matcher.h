@@ -2,12 +2,18 @@
 #define TEMPLATE_MATCHER_H 
 
 #include <opencv/cv.h>
-#include <opencv/highgui.h>
-#include <vector>
-#include "point.h"
 #include "matchingpointlist.h"
+
 class TemplateMatcher {
   public:
+
+    static MatchingPointList fastMatchTemplate(
+        const char* source,
+        const char* target,
+        int matchPercentage,
+        int maximumMatches,
+        int downPyrs,
+        int searchExpansion);
 
     static MatchingPointList fastMatchTemplate(
         const cv::Mat &source,
