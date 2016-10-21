@@ -16,7 +16,7 @@ class TemplateMatcher {
         int searchExpansion);
 
     static MatchingPointList fastMatchTemplate(
-        const cv::Mat &source,
+        const std::vector<cv::Mat> &sources,
         const cv::Mat &target,
         int matchPercentage,
         int maximumMatches,

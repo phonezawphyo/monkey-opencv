@@ -1,4 +1,4 @@
-const search = require('bindings')('fast_template_matcher.node');
+const search = require('../index.js');
 var assert = require('assert');
 
 describe('Basic search', function () {
