@@ -9,7 +9,8 @@ void FindSubImage::Execute() {
       matchPercent,
       maximumMatches,
       downPyramids,
-      searchExpansion);
+      searchExpansion,
+			method);
 }
 
 Local<Array> FindSubImage::toResult() {
@@ -112,8 +113,9 @@ NAN_METHOD(FindSubImage::findSubImage) {
   int maximumMatches = extractIntArgument("maximumMatches", o, 1);
   int downPyramids = extractIntArgument("downPyramids", o, 1);
   int searchExpansion = extractIntArgument("searchExpansion", o, 15);
+  int method = extractIntArgument("method", o, CV_TM_SQDIFF_NORMED);
 
-  if (matchPercent == -1 || maximumMatches == -1 || downPyramids == -1 || searchExpansion == -1) {
+  if (matchPercent == -1 || maximumMatches == -1 || downPyramids == -1 || searchExpansion == -1 || method == -1) {
     return;
   }
 
@@ -128,7 +130,8 @@ NAN_METHOD(FindSubImage::findSubImage) {
         matchPercent,
         maximumMatches,
         downPyramids,
-        searchExpansion);
+        searchExpansion,
+        method);
     worker->Execute();
     Local<Array> array = worker->toResult();
 
@@ -144,7 +147,8 @@ NAN_METHOD(FindSubImage::findSubImage) {
         matchPercent,
         maximumMatches,
         downPyramids,
-        searchExpansion);
+        searchExpansion,
+        method);
     Nan::AsyncQueueWorker(worker);
 
   }
@@ -152,8 +156,6 @@ NAN_METHOD(FindSubImage::findSubImage) {
 
 void FindSubImage::Init(v8::Local<v8::Object> target) {
   v8::Local<Function> fn = Nan::GetFunction(Nan::New<FunctionTemplate>(findSubImage)).ToLocalChecked();
-
-  Nan::Set(target, Nan::New<String>("findSubImage").ToLocalChecked(),
-    fn);
+  Nan::Set(target, Nan::New<String>("findSubImage").ToLocalChecked(),fn);
 }
 

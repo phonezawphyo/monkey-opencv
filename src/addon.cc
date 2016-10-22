@@ -1,7 +1,6 @@
 #include <nan.h>
 #include "find_sub_image.h"
 #include "opencv.h"
-#include "contours.h"
 #include "constants.h"
 #include "matrix.h"
 
@@ -12,7 +11,6 @@ NAN_MODULE_INIT(InitAll) {
   FindSubImage::Init(target);
   OpenCV::Init(target);
   Matrix::Init(target);
-  Contour::Init(target);
   Constants::Init(target);
 }
 

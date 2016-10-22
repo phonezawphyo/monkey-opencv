@@ -8,7 +8,6 @@
          "src/template_matcher.cc",
          "src/addon.cc",
          "src/find_sub_image.cc",
-         "src/contours.cc",
          "src/matrix.cc",
          "src/opencv.cc",
          "src/constants.cc",

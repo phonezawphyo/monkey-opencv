@@ -23,4 +23,20 @@ describe('Smoke Addon', function () {
     });
   });
 
+	it('free test', function(done) {
+		var targetFilename = "spec/fixtures/screen.png";
+		var templateFilename = "spec/fixtures/g.png";
+		cv.readImage(targetFilename, function(err, target){
+			cv.readImage(templateFilename, function(err, template){
+				var TM_CCORR_NORMED = 1;
+				//var res = target.matchTemplateByMatrix(template, TM_CCORR_NORMED);
+        //var matches = res.templateMatches(0.99,1.0, 10, true, 10, 10);
+        //console.log(target, template, res);
+        //console.log(matches);
+				//var res = target.matchTemplate(templateFilename, TM_CCORR_NORMED);
+        //console.log(res);
+				done();
+			});
+		})
+	});
 });

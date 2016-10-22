@@ -1,4 +1,3 @@
-#include "contours.h"
 #include "matrix.h"
 #include "opencv.h"
 #include <string.h>
@@ -74,9 +73,6 @@ void Matrix::Init(Local<Object> target) {
   Nan::SetPrototypeMethod(ctor, "canny", Canny);
   Nan::SetPrototypeMethod(ctor, "dilate", Dilate);
   Nan::SetPrototypeMethod(ctor, "erode", Erode);
-  Nan::SetPrototypeMethod(ctor, "findContours", FindContours);
-  Nan::SetPrototypeMethod(ctor, "drawContour", DrawContour);
-  Nan::SetPrototypeMethod(ctor, "drawAllContours", DrawAllContours);
   Nan::SetPrototypeMethod(ctor, "goodFeaturesToTrack", GoodFeaturesToTrack);
   Nan::SetPrototypeMethod(ctor, "houghLinesP", HoughLinesP);
   Nan::SetPrototypeMethod(ctor, "crop", Crop);
@@ -92,12 +88,9 @@ void Matrix::Init(Local<Object> target) {
   Nan::SetPrototypeMethod(ctor, "merge", Merge);
   Nan::SetPrototypeMethod(ctor, "equalizeHist", EqualizeHist);
   Nan::SetPrototypeMethod(ctor, "floodFill", FloodFill);
-  Nan::SetPrototypeMethod(ctor, "matchTemplate", MatchTemplate);
-  Nan::SetPrototypeMethod(ctor, "matchTemplateByMatrix", MatchTemplateByMatrix);
-  Nan::SetPrototypeMethod(ctor, "templateMatches", TemplateMatches);
   Nan::SetPrototypeMethod(ctor, "minMaxLoc", MinMaxLoc);
   Nan::SetPrototypeMethod(ctor, "pushBack", PushBack);
-  Nan::SetPrototypeMethod(ctor, "putText", PutText);
+  //Nan::SetPrototypeMethod(ctor, "putText", PutText);
   Nan::SetPrototypeMethod(ctor, "getPerspectiveTransform", GetPerspectiveTransform);
   Nan::SetPrototypeMethod(ctor, "warpPerspective", WarpPerspective);
   Nan::SetMethod(ctor, "Zeros", Zeros);
@@ -1448,67 +1441,6 @@ NAN_METHOD(Matrix::Erode) {
   info.GetReturnValue().Set(Nan::Null());
 }
 
-NAN_METHOD(Matrix::FindContours) {
-  Nan::HandleScope scope;
-
-  int mode = CV_RETR_LIST;
-  int chain = CV_CHAIN_APPROX_SIMPLE;
-
-  if (info.Length() > 0) {
-    if (info[0]->IsNumber()) mode = info[0]->IntegerValue();
-  }
-
-  if (info.Length() > 1) {
-    if (info[1]->IsNumber()) chain = info[1]->IntegerValue();
-  }
-
-  Matrix *self = Nan::ObjectWrap::Unwrap<Matrix>(info.This());
-  Local<Object> conts_to_return= Nan::New(Contour::constructor)->GetFunction()->NewInstance(Nan::GetCurrentContext()).ToLocalChecked();
-  Contour *contours = Nan::ObjectWrap::Unwrap<Contour>(conts_to_return);
-
-  cv::findContours(self->mat, contours->contours, contours->hierarchy, mode, chain);
-
-  info.GetReturnValue().Set(conts_to_return);
-
-}
-
-NAN_METHOD(Matrix::DrawContour) {
-  Nan::HandleScope scope;
-
-  Matrix *self = Nan::ObjectWrap::Unwrap<Matrix>(info.This());
-  Contour *cont = Nan::ObjectWrap::Unwrap<Contour>(info[0]->ToObject());
-  int pos = info[1]->NumberValue();
-  cv::Scalar color(0, 0, 255);
-
-  if (info[2]->IsArray()) {
-    Local<Object> objColor = info[2]->ToObject();
-    color = setColor(objColor);
-  }
-
-  int thickness = info.Length() < 4 ? 1 : info[3]->NumberValue();
-  cv::drawContours(self->mat, cont->contours, pos, color, thickness);
-
-  return;
-}
-
-NAN_METHOD(Matrix::DrawAllContours) {
-  Nan::HandleScope scope;
-
-  Matrix *self = Nan::ObjectWrap::Unwrap<Matrix>(info.This());
-  Contour *cont = Nan::ObjectWrap::Unwrap<Contour>(info[0]->ToObject());
-  cv::Scalar color(0, 0, 255);
-
-  if (info[1]->IsArray()) {
-    Local<Object> objColor = info[1]->ToObject();
-    color = setColor(objColor);
-  }
-
-  int thickness = info.Length() < 3 ? 1 : info[2]->NumberValue();
-  cv::drawContours(self->mat, cont->contours, -1, color, thickness);
-
-  return;
-}
-
 NAN_METHOD(Matrix::GoodFeaturesToTrack) {
   Nan::HandleScope scope;
 
@@ -2152,200 +2084,200 @@ NAN_METHOD(Matrix::FloodFill) {
 // @author olfox
 // Returns an array of the most probable positions
 // Usage: output = input.templateMatches(min_probability, max_probability, limit, ascending, min_x_distance, min_y_distance);
-NAN_METHOD(Matrix::TemplateMatches) {
-  SETUP_FUNCTION(Matrix)
-
-  bool filter_min_probability =
-      (info.Length() >= 1) ? info[0]->IsNumber() : false;
-  bool filter_max_probability =
-      (info.Length() >= 2) ? info[1]->IsNumber() : false;
-  double min_probability = filter_min_probability ? info[0]->NumberValue() : 0;
-  double max_probability = filter_max_probability ? info[1]->NumberValue() : 0;
-  int limit = (info.Length() >= 3) ? info[2]->IntegerValue() : 0;
-  bool ascending = (info.Length() >= 4) ? info[3]->BooleanValue() : false;
-  int min_x_distance = (info.Length() >= 5) ? info[4]->IntegerValue() : 0;
-  int min_y_distance = (info.Length() >= 6) ? info[5]->IntegerValue() : 0;
-
-  cv::Mat_<int> indices;
-
-  if (ascending) {
-    cv::sortIdx(self->mat.reshape(0, 1), indices,
-    CV_SORT_ASCENDING + CV_SORT_EVERY_ROW);
-  } else {
-    cv::sortIdx(self->mat.reshape(0, 1), indices,
-    CV_SORT_DESCENDING + CV_SORT_EVERY_ROW);
-  }
-
-  cv::Mat hit_mask = cv::Mat::zeros(self->mat.size(), CV_64F);
-  v8::Local < v8::Array > probabilites_array = Nan::New<v8::Array>(limit);
-
-  cv::Mat_<float>::const_iterator begin = self->mat.begin<float>();
-  cv::Mat_<int>::const_iterator it = indices.begin();
-  cv::Mat_<int>::const_iterator end = indices.end();
-  int index = 0;
-
-  for (; (limit == 0 || index < limit) && it != end; ++it) {
-    cv::Point pt = (begin + *it).pos();
-
-    float probability = self->mat.at<float>(pt.y, pt.x);
-
-    if (filter_min_probability && probability < min_probability) {
-      if (ascending) {
-        continue;
-      }
-      else {
-        break;
-      }
-    }
-
-    if (filter_max_probability && probability > max_probability) {
-      if (ascending)
-        break;
-      else
-        continue;
-    }
-
-    if (min_x_distance != 0 || min_y_distance != 0) {
-      // Check hit mask color for for every corner
-
-      cv::Size maxSize = hit_mask.size();
-      int max_x = maxSize.width - 1;
-      int max_y = maxSize.height - 1;
-      cv::Point top_left = cv::Point(std::max(0, pt.x - min_x_distance),
-        std::max(0, pt.y - min_y_distance));
-      cv::Point top_right = cv::Point(std::min(max_x, pt.x + min_x_distance),
-        std::max(0, pt.y - min_y_distance));
-      cv::Point bottom_left = cv::Point(std::max(0, pt.x - min_x_distance),
-        std::min(max_y, pt.y + min_y_distance));
-      cv::Point bottom_right = cv::Point(std::min(max_x, pt.x + min_x_distance),
-        std::min(max_y, pt.y + min_y_distance));
-      if (hit_mask.at<double>(top_left.y, top_left.x) > 0)
-        continue;
-      if (hit_mask.at<double>(top_right.y, top_right.x) > 0)
-        continue;
-      if (hit_mask.at<double>(bottom_left.y, bottom_left.x) > 0)
-        continue;
-      if (hit_mask.at<double>(bottom_right.y, bottom_right.x) > 0)
-        continue;
-      cv::Scalar color(255.0);
-      cv::rectangle(hit_mask, top_left, bottom_right, color, CV_FILLED);
-    }
-
-    Local<Value> x_value = Nan::New<Number>(pt.x);
-    Local<Value> y_value = Nan::New<Number>(pt.y);
-    Local<Value> probability_value = Nan::New<Number>(probability);
-
-    Local < Object > probability_object = Nan::New<Object>();
-    probability_object->Set(Nan::New<String>("x").ToLocalChecked(), x_value);
-    probability_object->Set(Nan::New<String>("y").ToLocalChecked(), y_value);
-    probability_object->Set(Nan::New<String>("probability").ToLocalChecked(), probability_value);
-
-    probabilites_array->Set(index, probability_object);
-    index++;
-  }
-
-  info.GetReturnValue().Set(probabilites_array);
-}
+//NAN_METHOD(Matrix::TemplateMatches) {
+//  SETUP_FUNCTION(Matrix)
+//
+//  bool filter_min_probability =
+//      (info.Length() >= 1) ? info[0]->IsNumber() : false;
+//  bool filter_max_probability =
+//      (info.Length() >= 2) ? info[1]->IsNumber() : false;
+//  double min_probability = filter_min_probability ? info[0]->NumberValue() : 0;
+//  double max_probability = filter_max_probability ? info[1]->NumberValue() : 0;
+//  int limit = (info.Length() >= 3) ? info[2]->IntegerValue() : 0;
+//  bool ascending = (info.Length() >= 4) ? info[3]->BooleanValue() : false;
+//  int min_x_distance = (info.Length() >= 5) ? info[4]->IntegerValue() : 0;
+//  int min_y_distance = (info.Length() >= 6) ? info[5]->IntegerValue() : 0;
+//
+//  cv::Mat_<int> indices;
+//
+//  if (ascending) {
+//    cv::sortIdx(self->mat.reshape(0, 1), indices,
+//    CV_SORT_ASCENDING + CV_SORT_EVERY_ROW);
+//  } else {
+//    cv::sortIdx(self->mat.reshape(0, 1), indices,
+//    CV_SORT_DESCENDING + CV_SORT_EVERY_ROW);
+//  }
+//
+//  cv::Mat hit_mask = cv::Mat::zeros(self->mat.size(), CV_64F);
+//  v8::Local < v8::Array > probabilites_array = Nan::New<v8::Array>(limit);
+//
+//  cv::Mat_<float>::const_iterator begin = self->mat.begin<float>();
+//  cv::Mat_<int>::const_iterator it = indices.begin();
+//  cv::Mat_<int>::const_iterator end = indices.end();
+//  int index = 0;
+//
+//  for (; (limit == 0 || index < limit) && it != end; ++it) {
+//    cv::Point pt = (begin + *it).pos();
+//
+//    float probability = self->mat.at<float>(pt.y, pt.x);
+//
+//    if (filter_min_probability && probability < min_probability) {
+//      if (ascending) {
+//        continue;
+//      }
+//      else {
+//        break;
+//      }
+//    }
+//
+//    if (filter_max_probability && probability > max_probability) {
+//      if (ascending)
+//        break;
+//      else
+//        continue;
+//    }
+//
+//    if (min_x_distance != 0 || min_y_distance != 0) {
+//      // Check hit mask color for for every corner
+//
+//      cv::Size maxSize = hit_mask.size();
+//      int max_x = maxSize.width - 1;
+//      int max_y = maxSize.height - 1;
+//      cv::Point top_left = cv::Point(std::max(0, pt.x - min_x_distance),
+//        std::max(0, pt.y - min_y_distance));
+//      cv::Point top_right = cv::Point(std::min(max_x, pt.x + min_x_distance),
+//        std::max(0, pt.y - min_y_distance));
+//      cv::Point bottom_left = cv::Point(std::max(0, pt.x - min_x_distance),
+//        std::min(max_y, pt.y + min_y_distance));
+//      cv::Point bottom_right = cv::Point(std::min(max_x, pt.x + min_x_distance),
+//        std::min(max_y, pt.y + min_y_distance));
+//      if (hit_mask.at<double>(top_left.y, top_left.x) > 0)
+//        continue;
+//      if (hit_mask.at<double>(top_right.y, top_right.x) > 0)
+//        continue;
+//      if (hit_mask.at<double>(bottom_left.y, bottom_left.x) > 0)
+//        continue;
+//      if (hit_mask.at<double>(bottom_right.y, bottom_right.x) > 0)
+//        continue;
+//      cv::Scalar color(255.0);
+//      cv::rectangle(hit_mask, top_left, bottom_right, color, CV_FILLED);
+//    }
+//
+//    Local<Value> x_value = Nan::New<Number>(pt.x);
+//    Local<Value> y_value = Nan::New<Number>(pt.y);
+//    Local<Value> probability_value = Nan::New<Number>(probability);
+//
+//    Local < Object > probability_object = Nan::New<Object>();
+//    probability_object->Set(Nan::New<String>("x").ToLocalChecked(), x_value);
+//    probability_object->Set(Nan::New<String>("y").ToLocalChecked(), y_value);
+//    probability_object->Set(Nan::New<String>("probability").ToLocalChecked(), probability_value);
+//
+//    probabilites_array->Set(index, probability_object);
+//    index++;
+//  }
+//
+//  info.GetReturnValue().Set(probabilites_array);
+//}
 
 // @author Evilcat325
 // MatchTemplate accept a Matrix
 // Usage: output = input.matchTemplateByMatrix(matrix. method);
-NAN_METHOD(Matrix::MatchTemplateByMatrix) {
-  Nan::HandleScope scope;
-
-  Matrix *self = Nan::ObjectWrap::Unwrap<Matrix>(info.This());
-  Matrix *templ = Nan::ObjectWrap::Unwrap<Matrix>(info[0]->ToObject());
-
-  Local<Object> out = Nan::New(Matrix::constructor)->GetFunction()->NewInstance(Nan::GetCurrentContext()).ToLocalChecked();
-  Matrix *m_out = Nan::ObjectWrap::Unwrap<Matrix>(out);
-  int cols = self->mat.cols - templ->mat.cols + 1;
-  int rows = self->mat.rows - templ->mat.rows + 1;
-  m_out->mat.create(cols, rows, CV_32FC1);
-
-  /*
-   TM_SQDIFF        =0
-   TM_SQDIFF_NORMED =1
-   TM_CCORR         =2
-   TM_CCORR_NORMED  =3
-   TM_CCOEFF        =4
-   TM_CCOEFF_NORMED =5
-   */
-
-  int method = (info.Length() < 2) ? (int)cv::TM_CCORR_NORMED : info[1]->Uint32Value();
-  if (!(method >= 0 && method <= 5)) method = (int)cv::TM_CCORR_NORMED;
-  cv::matchTemplate(self->mat, templ->mat, m_out->mat, method);
-  info.GetReturnValue().Set(out);
-}
+//NAN_METHOD(Matrix::MatchTemplateByMatrix) {
+//  Nan::HandleScope scope;
+//
+//  Matrix *self = Nan::ObjectWrap::Unwrap<Matrix>(info.This());
+//  Matrix *templ = Nan::ObjectWrap::Unwrap<Matrix>(info[0]->ToObject());
+//
+//  Local<Object> out = Nan::New(Matrix::constructor)->GetFunction()->NewInstance(Nan::GetCurrentContext()).ToLocalChecked();
+//  Matrix *m_out = Nan::ObjectWrap::Unwrap<Matrix>(out);
+//  int cols = self->mat.cols - templ->mat.cols + 1;
+//  int rows = self->mat.rows - templ->mat.rows + 1;
+//  m_out->mat.create(cols, rows, CV_32FC1);
+//
+//  /*
+//   TM_SQDIFF        =0
+//   TM_SQDIFF_NORMED =1
+//   TM_CCORR         =2
+//   TM_CCORR_NORMED  =3
+//   TM_CCOEFF        =4
+//   TM_CCOEFF_NORMED =5
+//   */
+//
+//  int method = (info.Length() < 2) ? (int)cv::TM_CCORR_NORMED : info[1]->Uint32Value();
+//  if (!(method >= 0 && method <= 5)) method = (int)cv::TM_CCORR_NORMED;
+//  cv::matchTemplate(self->mat, templ->mat, m_out->mat, method);
+//  info.GetReturnValue().Set(out);
+//}
 
 // @author ytham
 // Match Template filter
 // Usage: output = input.matchTemplate("templateFileString", method);
-NAN_METHOD(Matrix::MatchTemplate) {
-  Nan::HandleScope scope;
-
-  Matrix *self = Nan::ObjectWrap::Unwrap<Matrix>(info.This());
-
-  v8::String::Utf8Value args0(info[0]->ToString());
-  std::string filename = std::string(*args0);
-  cv::Mat templ;
-  templ = cv::imread(filename, -1);
-
-  Local<Object> out = Nan::New(Matrix::constructor)->GetFunction()->NewInstance(Nan::GetCurrentContext()).ToLocalChecked();
-  Matrix *m_out = Nan::ObjectWrap::Unwrap<Matrix>(out);
-  int cols = self->mat.cols - templ.cols + 1;
-  int rows = self->mat.rows - templ.rows + 1;
-  m_out->mat.create(cols, rows, CV_32FC1);
-
-  /*
-   TM_SQDIFF        =0
-   TM_SQDIFF_NORMED =1
-   TM_CCORR         =2
-   TM_CCORR_NORMED  =3
-   TM_CCOEFF        =4
-   TM_CCOEFF_NORMED =5
-   */
-
-  int method = (info.Length() < 2) ? (int)cv::TM_CCORR_NORMED : info[1]->Uint32Value();
-  cv::matchTemplate(self->mat, templ, m_out->mat, method);
-  cv::normalize(m_out->mat, m_out->mat, 0, 1, cv::NORM_MINMAX, -1, cv::Mat());
-  double minVal;
-  double maxVal;
-  cv::Point minLoc;
-  cv::Point maxLoc;
-  cv::Point matchLoc;
-
-  minMaxLoc(m_out->mat, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
-
-  if(method  == CV_TM_SQDIFF || method == CV_TM_SQDIFF_NORMED) {
-    matchLoc = minLoc;
-  }
-  else {
-    matchLoc = maxLoc;
-  }
-
-  //detected ROI
-  unsigned int roi_x = matchLoc.x;
-  unsigned int roi_y = matchLoc.y;
-  unsigned int roi_width = templ.cols;
-  unsigned int roi_height = templ.rows;
-
-  //draw rectangle
-  if(info.Length() >= 3) {
-    cv::Rect roi(roi_x,roi_y,roi_width,roi_height);
-    cv::rectangle(self->mat, roi, cv::Scalar(0,0,255));
-  }
-
-  m_out->mat.convertTo(m_out->mat, CV_8UC1, 255, 0);
-
-  v8::Local <v8::Array> arr = Nan::New<v8::Array>(5);
-  arr->Set(0, out);
-  arr->Set(1, Nan::New<Number>(roi_x));
-  arr->Set(2, Nan::New<Number>(roi_y));
-  arr->Set(3, Nan::New<Number>(roi_width));
-  arr->Set(4, Nan::New<Number>(roi_height));
-
-  info.GetReturnValue().Set(arr);
-}
+//NAN_METHOD(Matrix::MatchTemplate) {
+//  Nan::HandleScope scope;
+//
+//  Matrix *self = Nan::ObjectWrap::Unwrap<Matrix>(info.This());
+//
+//  v8::String::Utf8Value args0(info[0]->ToString());
+//  std::string filename = std::string(*args0);
+//  cv::Mat templ;
+//  templ = cv::imread(filename, -1);
+//
+//  Local<Object> out = Nan::New(Matrix::constructor)->GetFunction()->NewInstance(Nan::GetCurrentContext()).ToLocalChecked();
+//  Matrix *m_out = Nan::ObjectWrap::Unwrap<Matrix>(out);
+//  int cols = self->mat.cols - templ.cols + 1;
+//  int rows = self->mat.rows - templ.rows + 1;
+//  m_out->mat.create(cols, rows, CV_32FC1);
+//
+//  /*
+//   TM_SQDIFF        =0
+//   TM_SQDIFF_NORMED =1
+//   TM_CCORR         =2
+//   TM_CCORR_NORMED  =3
+//   TM_CCOEFF        =4
+//   TM_CCOEFF_NORMED =5
+//   */
+//
+//  int method = (info.Length() < 2) ? (int)cv::TM_CCORR_NORMED : info[1]->Uint32Value();
+//  cv::matchTemplate(self->mat, templ, m_out->mat, method);
+//  cv::normalize(m_out->mat, m_out->mat, 0, 1, cv::NORM_MINMAX, -1, cv::Mat());
+//  double minVal;
+//  double maxVal;
+//  cv::Point minLoc;
+//  cv::Point maxLoc;
+//  cv::Point matchLoc;
+//
+//  minMaxLoc(m_out->mat, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat());
+//
+//  if(method  == CV_TM_SQDIFF || method == CV_TM_SQDIFF_NORMED) {
+//    matchLoc = minLoc;
+//  }
+//  else {
+//    matchLoc = maxLoc;
+//  }
+//
+//  //detected ROI
+//  unsigned int roi_x = matchLoc.x;
+//  unsigned int roi_y = matchLoc.y;
+//  unsigned int roi_width = templ.cols;
+//  unsigned int roi_height = templ.rows;
+//
+//  //draw rectangle
+//  if(info.Length() >= 3) {
+//    cv::Rect roi(roi_x,roi_y,roi_width,roi_height);
+//    cv::rectangle(self->mat, roi, cv::Scalar(0,0,255));
+//  }
+//
+//  m_out->mat.convertTo(m_out->mat, CV_8UC1, 255, 0);
+//
+//  v8::Local <v8::Array> arr = Nan::New<v8::Array>(5);
+//  arr->Set(0, out);
+//  arr->Set(1, Nan::New<Number>(roi_x));
+//  arr->Set(2, Nan::New<Number>(roi_y));
+//  arr->Set(3, Nan::New<Number>(roi_width));
+//  arr->Set(4, Nan::New<Number>(roi_height));
+//
+//  info.GetReturnValue().Set(arr);
+//}
 
 // @author ytham
 // Min/Max location
@@ -2391,47 +2323,6 @@ NAN_METHOD(Matrix::PushBack) {
   self->mat.push_back(m_input->mat);
 
   info.GetReturnValue().Set(info.This());
-}
-
-NAN_METHOD(Matrix::PutText) {
-  Nan::HandleScope scope;
-
-  Matrix *self = Nan::ObjectWrap::Unwrap<Matrix>(info.This());
-  Nan::Utf8String textString(info[0]);  //FIXME: might cause issues, see here https://github.com/rvagg/nan/pull/152
-  char *text = *textString;//(char *) malloc(textString.length() + 1);
-  //strcpy(text, *textString);
-
-  int x = info[1]->IntegerValue();
-  int y = info[2]->IntegerValue();
-
-  Nan::Utf8String fontString(info[3]);
-  char *font = *fontString;//(char *) malloc(fontString.length() + 1);
-  //strcpy(font, *fontString);
-  int constFont = cv::FONT_HERSHEY_SIMPLEX;
-
-  if (!strcmp(font, "HERSEY_SIMPLEX")) {constFont = cv::FONT_HERSHEY_SIMPLEX;}
-  else if (!strcmp(font, "HERSEY_PLAIN")) {constFont = cv::FONT_HERSHEY_PLAIN;}
-  else if (!strcmp(font, "HERSEY_DUPLEX")) {constFont = cv::FONT_HERSHEY_DUPLEX;}
-  else if (!strcmp(font, "HERSEY_COMPLEX")) {constFont = cv::FONT_HERSHEY_COMPLEX;}
-  else if (!strcmp(font, "HERSEY_TRIPLEX")) {constFont = cv::FONT_HERSHEY_TRIPLEX;}
-  else if (!strcmp(font, "HERSEY_COMPLEX_SMALL")) {constFont = cv::FONT_HERSHEY_COMPLEX_SMALL;}
-  else if (!strcmp(font, "HERSEY_SCRIPT_SIMPLEX")) {constFont = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;}
-  else if (!strcmp(font, "HERSEY_SCRIPT_COMPLEX")) {constFont = cv::FONT_HERSHEY_SCRIPT_COMPLEX;}
-  else if (!strcmp(font, "HERSEY_SCRIPT_SIMPLEX")) {constFont = cv::FONT_HERSHEY_SCRIPT_SIMPLEX;}
-
-  cv::Scalar color(0, 0, 255);
-
-  if (info[4]->IsArray()) {
-    Local<Object> objColor = info[4]->ToObject();
-    color = setColor(objColor);
-  }
-
-  double scale = info.Length() < 6 ? 1 : info[5]->NumberValue();
-  double thickness = info.Length() < 7 ? 1 : info[6]->NumberValue();
-
-  cv::putText(self->mat, text, cv::Point(x, y), constFont, scale, color, thickness);
-
-  return;
 }
 
 NAN_METHOD(Matrix::GetPerspectiveTransform) {

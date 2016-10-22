@@ -11,7 +11,8 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
         int matchPercentage,
         int maximumMatches,
         int downPyrs,
-        int searchExpansion)
+        int searchExpansion,
+        int method)
 {
   cv::Mat sourceImg, templateImg;
 
@@ -28,7 +29,8 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
       matchPercentage,
       maximumMatches,
       downPyrs,
-      searchExpansion);
+      searchExpansion,
+      method);
 }
 
 
@@ -38,7 +40,8 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
 		int matchPercentage,
 		int maximumMatches,
 		int downPyrs,
-		int searchExpansion)
+		int searchExpansion,
+    int method)
 {
   MatchingPointList matchingPointList;
   int sourceIndex = 0;
@@ -85,15 +88,12 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
     resultSize.width = smallSourceSize.width - smallTargetSize.width + 1;
     resultSize.height = smallSourceSize.height - smallTargetSize.height + 1;
 
-    int method = CV_TM_SQDIFF_NORMED;
-
     cv::Mat result(resultSize, CV_32FC1);
-    //cv::matchTemplate(copyOfSource, copyOfTarget, result, toOpenCVMethod(method));
+
     cv::matchTemplate(copyOfSource,
         copyOfTarget,
         result,
         method);
-
 
     // find the top match locations
     std::vector<Point2D> locations = multipleMinMaxLoc(result,

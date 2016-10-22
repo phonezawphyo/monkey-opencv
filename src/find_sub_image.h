@@ -12,8 +12,9 @@ class FindSubImage: public Nan::AsyncWorker {
       int matchPercent,
       int maximumMatches,
       int downPyramids,
-      int searchExpansion) : AsyncWorker(callback),
-        source(source), target(target), matchPercent(matchPercent), maximumMatches(maximumMatches), downPyramids(downPyramids), searchExpansion(searchExpansion) {
+      int searchExpansion,
+      int method) : AsyncWorker(callback),
+        source(source), target(target), matchPercent(matchPercent), maximumMatches(maximumMatches), downPyramids(downPyramids), searchExpansion(searchExpansion), method(method) {
     }
     
     ~FindSubImage() {}
@@ -34,6 +35,7 @@ class FindSubImage: public Nan::AsyncWorker {
 		int maximumMatches;
 		int downPyramids;
 		int searchExpansion;
+		int method;
     MatchingPointList matches;
 };
 

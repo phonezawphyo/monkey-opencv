@@ -79,10 +79,6 @@ public:
   JSFUNC(Dilate)
   JSFUNC(Erode)
 
-  JSFUNC(FindContours)
-  JSFUNC(DrawContour)
-  JSFUNC(DrawAllContours)
-
   // Feature Detection
   JSFUNC(GoodFeaturesToTrack)
   JSFUNC(HoughLinesP)
@@ -108,14 +104,14 @@ public:
   JSFUNC(Pixel)
   JSFUNC(FloodFill)
 
-  JSFUNC(MatchTemplate)
-  JSFUNC(MatchTemplateByMatrix)
-  JSFUNC(TemplateMatches)
+  //JSFUNC(MatchTemplate)
+  //JSFUNC(MatchTemplateByMatrix)
+  //JSFUNC(TemplateMatches)
   JSFUNC(MinMaxLoc)
 
   JSFUNC(PushBack)
 
-  JSFUNC(PutText)
+  //JSFUNC(PutText)
   JSFUNC(GetPerspectiveTransform)
   JSFUNC(WarpPerspective)
 
