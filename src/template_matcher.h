@@ -38,6 +38,20 @@ class TemplateMatcher {
       const cv::Mat &target,
       int searchExpansion);
 
+    //static void searchImage(
+    //  const cv::Mat &source,
+    //  const cv::Mat &target,
+    //  const cv::Rect &searchRoi,
+    //  cv::Mat &result,
+    //  cv::Size &resultSize,
+    //  int method);
+    static cv::Mat searchImage(
+      const cv::Mat &source,
+      const cv::Mat &target,
+      const cv::Rect &searchRoi,
+      cv::Size &resultSize,
+      int method);
+
     static MatchingPoint findBestMatchLocation(
       const cv::Mat &result,
       const cv::Mat &target,

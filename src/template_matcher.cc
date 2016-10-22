@@ -146,19 +146,8 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
 
       cv::Rect searchRoi = makeSearchRoi(sourceSize, searchPoint, target, searchExpansion);
 
-      //searchImage(source, target, searchRoi, result, resultSize, method);
-
-
-      cv::Mat searchImage(source, searchRoi);
-
-
-      // perform the search on the large images
-      resultSize.width = searchRoi.width - target.size().width + 1;
-      resultSize.height = searchRoi.height - target.size().height + 1;
-
-      result = cv::Mat(resultSize, CV_32FC1);
-      cv::matchTemplate(searchImage, target, result, method);
-
+      // Invoke cv::matchTemplate
+      result = searchImage(source, target, searchRoi, resultSize, method);
 
       // Find best match location
       MatchingPoint mpt = findBestMatchLocation(
@@ -183,6 +172,25 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
   }
 
   return matchingPointList;
+}
+
+cv::Mat TemplateMatcher::searchImage(
+    const cv::Mat &source,
+    const cv::Mat &target,
+    const cv::Rect &searchRoi,
+    cv::Size &resultSize,
+    int method) {
+
+  cv::Mat searchImage(source, searchRoi);
+
+  // perform the search on the large images
+  resultSize.width = searchRoi.width - target.size().width + 1;
+  resultSize.height = searchRoi.height - target.size().height + 1;
+
+  cv::Mat result = cv::Mat(resultSize, CV_32FC1);
+  cv::matchTemplate(searchImage, target, result, method);
+
+  return result;
 }
 
 // set the source image's ROI to slightly larger than 
