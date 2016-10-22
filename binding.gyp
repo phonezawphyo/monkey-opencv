@@ -8,6 +8,9 @@
          "src/template_matcher.cc",
          "src/addon.cc",
          "src/async.cc",
+         "src/contours.cc",
+         "src/matrix.cc",
+         "src/opencv.cc",
        ],
 
       "include_dirs": [ "<!(node -e \"require('nan')\")" ],
