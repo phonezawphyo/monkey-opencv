@@ -41,27 +41,20 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
 		int maximumMatches,
 		int downPyrs,
 		int searchExpansion,
-    int method)
-{
+    int method) {
+
   MatchingPointList matchingPointList;
+
   int sourceIndex = 0;
 
   for (const cv::Mat &source: sources)
   {
 
+    
     // Down size images
     cv::Mat copyOfSource = downPyrImage(source, downPyrs);
     cv::Mat copyOfTarget = downPyrImage(target, downPyrs);
-
-    // perform the match on the shrunken images
-    cv::Size smallTargetSize = copyOfTarget.size();
-    cv::Size smallSourceSize = copyOfSource.size();
-
-    cv::Size resultSize;
-    resultSize.width = smallSourceSize.width - smallTargetSize.width + 1;
-    resultSize.height = smallSourceSize.height - smallTargetSize.height + 1;
-
-    cv::Mat result(resultSize, CV_32FC1);
+    cv::Mat result = makeResult(source, target);
 
     cv::matchTemplate(copyOfSource,
         copyOfTarget,
@@ -74,7 +67,7 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
         method);
     
     updateMatchingPoints(source, target,
-        resultSize,
+        result,
         locations,
         matchingPointList,
         matchPercentage,
@@ -88,6 +81,20 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
   }
 
   return matchingPointList;
+}
+    
+cv::Mat TemplateMatcher::makeResult(
+    const cv::Mat &source,
+    const cv::Mat &target) {
+
+    cv::Size sourceSize = source.size();
+    cv::Size targetSize = target.size();
+
+    cv::Size resultSize;
+    resultSize.width = sourceSize.width - targetSize.width + 1;
+    resultSize.height = sourceSize.height - targetSize.height + 1;
+
+    return cv::Mat(resultSize, CV_32FC1);
 }
 
 cv::Mat TemplateMatcher::downPyrImage(
@@ -118,7 +125,7 @@ cv::Mat TemplateMatcher::downPyrImage(
 void TemplateMatcher::updateMatchingPoints(
     const cv::Mat &source,
     const cv::Mat &target,
-    cv::Size &resultSize,
+    const cv::Mat &result,
     std::vector<Point2D> locations,
     MatchingPointList &matchingPointList,
     int matchPercentage,
@@ -131,6 +138,7 @@ void TemplateMatcher::updateMatchingPoints(
   // search the large images at the returned locations
   cv::Size sourceSize = source.size();
   cv::Size targetSize = target.size();
+  cv::Size resultSize = result.size();
 
   int upPyrs = std::pow(2.0f, downPyrs);
 

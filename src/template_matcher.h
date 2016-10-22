@@ -27,6 +27,10 @@ class TemplateMatcher {
 
   private:
 
+    static cv::Mat makeResult(
+        const cv::Mat &source,
+        const cv::Mat &target);
+
     static cv::Mat downPyrImage(
         const cv::Mat &image,
         int downPyrs);
@@ -45,7 +49,7 @@ class TemplateMatcher {
     static void updateMatchingPoints(
         const cv::Mat &source,
         const cv::Mat &target,
-        cv::Size &resultSize,
+        const cv::Mat &result,
         std::vector<Point2D> locations,
         MatchingPointList &matchingPointList,
         int matchPercentage,
