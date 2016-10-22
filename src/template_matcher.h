@@ -32,5 +32,18 @@ class TemplateMatcher {
         int maximumMatches,
         int method);
 
+    static cv::Rect makeSearchRoi(
+      const cv::Size &sourceSize,
+      const Point2D &searchPoint,
+      const cv::Mat &target,
+      int searchExpansion);
+
+    static MatchingPoint findBestMatchLocation(
+      const cv::Mat &result,
+      const cv::Mat &target,
+      const cv::Rect &searchRoi,
+      int sourceIndex,
+      int matchPercentage,
+      int method);
 };
 #endif // MATCHINGPOINTLIST_H

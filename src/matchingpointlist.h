@@ -25,13 +25,17 @@ struct MatchingPoint
     MatchingPoint(const Point2D &position, int confidence, int imageIndex)
         : position(position),
           confidence(confidence),
-          imageIndex(imageIndex)
-    {
+          imageIndex(imageIndex) {
+      empty = false;
+    }
+
+    MatchingPoint() : position(Point2D(0,0)) {
     }
 
     Point2D position;
-    int confidence;
-    int imageIndex;
+    int confidence = -1;
+    int imageIndex = -1;
+    bool empty = true;
 };
 
 using MatchingPointList = std::vector<MatchingPoint>;

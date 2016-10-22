@@ -143,34 +143,14 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
 
       // set the source image's ROI to slightly larger than the target image,
       //  centred at the current point
-      cv::Rect searchRoi;
-      searchRoi.x = searchPoint.x() - (target.size().width) / 2 - searchExpansion;
-      searchRoi.y = searchPoint.y() - (target.size().height) / 2 - searchExpansion;
-      searchRoi.width = target.size().width + searchExpansion * 2;
-      searchRoi.height = target.size().height + searchExpansion * 2;
 
-      // make sure ROI doesn't extend outside of image
-      if(searchRoi.x < 0)
-        searchRoi.x = 0;
+      cv::Rect searchRoi = makeSearchRoi(sourceSize, searchPoint, target, searchExpansion);
 
-      if(searchRoi.y < 0)
-        searchRoi.y = 0;
+      //searchImage(source, target, searchRoi, result, resultSize, method);
 
-      if((searchRoi.x + searchRoi.width) > (sourceSize.width - 1))
-      {
-        int numPixelsOver = (searchRoi.x + searchRoi.width) - (sourceSize.width - 1);
-
-        searchRoi.width -= numPixelsOver;
-      }
-
-      if((searchRoi.y + searchRoi.height) > (sourceSize.height - 1))
-      {
-        int numPixelsOver = (searchRoi.y + searchRoi.height) - (sourceSize.height - 1);
-
-        searchRoi.height -= numPixelsOver;
-      }
 
       cv::Mat searchImage(source, searchRoi);
+
 
       // perform the search on the large images
       resultSize.width = searchRoi.width - target.size().width + 1;
@@ -179,45 +159,106 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
       result = cv::Mat(resultSize, CV_32FC1);
       cv::matchTemplate(searchImage, target, result, method);
 
-      // find the best match location
-      double minValue;
-      double maxValue;
-      cv::Point minLoc;
-      cv::Point maxLoc;
 
-      cv::minMaxLoc(result, &minValue, &maxValue, &minLoc, &maxLoc);
+      // Find best match location
+      MatchingPoint mpt = findBestMatchLocation(
+          result,
+          target,
+          searchRoi,
+          sourceIndex,
+          matchPercentage,
+          method);
 
-      double &value = (method == CV_TM_SQDIFF_NORMED) ? minValue : maxValue;
-      cv::Point &loc = (method == CV_TM_SQDIFF_NORMED) ? minLoc : maxLoc;
-
-      value *= 100.0;
-
-      // transform point back to original image
-      loc.x += searchRoi.x + target.size().width / 2;
-      loc.y += searchRoi.y + target.size().height / 2;
-
-      if(method == CV_TM_SQDIFF_NORMED)
-        value = 100.0f - value;
-
-      if(value >= matchPercentage)
-      {
-        // add the point to the list
-        matchingPointList.push_back(MatchingPoint(Point2D(loc.x, loc.y), value, sourceIndex));
-
-        // if we are only looking for a single target, we have found it, so we
-        //  can return
-        if(maximumMatches <= 1)
+      if (mpt.empty) {
+        break;
+      } else {
+        matchingPointList.push_back(mpt);
+        
+        if(maximumMatches <= 1) {
           break;
-      }
-      else
-      {
-        break; // skip the rest
+        }
       }
     }
     ++sourceIndex;
   }
 
   return matchingPointList;
+}
+
+// set the source image's ROI to slightly larger than 
+// the target image, centred at the current point
+cv::Rect TemplateMatcher::makeSearchRoi(
+    const cv::Size &sourceSize,
+    const Point2D &searchPoint,
+    const cv::Mat &target,
+    int searchExpansion) {
+
+  cv::Rect searchRoi;
+  searchRoi.x = searchPoint.x() - (target.size().width) / 2 - searchExpansion;
+  searchRoi.y = searchPoint.y() - (target.size().height) / 2 - searchExpansion;
+  searchRoi.width = target.size().width + searchExpansion * 2;
+  searchRoi.height = target.size().height + searchExpansion * 2;
+
+  // make sure ROI doesn't extend outside of image
+  if(searchRoi.x < 0)
+    searchRoi.x = 0;
+
+  if(searchRoi.y < 0)
+    searchRoi.y = 0;
+
+  if((searchRoi.x + searchRoi.width) > (sourceSize.width - 1))
+  {
+    int numPixelsOver = (searchRoi.x + searchRoi.width) - (sourceSize.width - 1);
+
+    searchRoi.width -= numPixelsOver;
+  }
+
+  if((searchRoi.y + searchRoi.height) > (sourceSize.height - 1))
+  {
+    int numPixelsOver = (searchRoi.y + searchRoi.height) - (sourceSize.height - 1);
+
+    searchRoi.height -= numPixelsOver;
+  }
+
+  return searchRoi;
+}
+
+MatchingPoint TemplateMatcher::findBestMatchLocation(
+    const cv::Mat &result,
+    const cv::Mat &target,
+    const cv::Rect &searchRoi,
+    int sourceIndex,
+    int matchPercentage,
+    int method) {
+
+  double minValue;
+  double maxValue;
+  cv::Point minLoc;
+  cv::Point maxLoc;
+
+  cv::minMaxLoc(result, &minValue, &maxValue, &minLoc, &maxLoc);
+
+  double &value = (method == CV_TM_SQDIFF_NORMED) ? minValue : maxValue;
+  cv::Point &loc = (method == CV_TM_SQDIFF_NORMED) ? minLoc : maxLoc;
+
+  value *= 100.0;
+
+  // transform point back to original image
+  loc.x += searchRoi.x + target.size().width / 2;
+  loc.y += searchRoi.y + target.size().height / 2;
+
+  if(method == CV_TM_SQDIFF_NORMED)
+    value = 100.0f - value;
+
+  if(value >= matchPercentage)
+  {
+    // add the point to the list
+    return MatchingPoint(Point2D(loc.x, loc.y), value, sourceIndex);
+  }
+  else
+  {
+    return MatchingPoint();
+  }
 }
 
 
