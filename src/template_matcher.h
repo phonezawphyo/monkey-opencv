@@ -27,10 +27,39 @@ class TemplateMatcher {
 
   private:
 
+    static cv::Mat downPyrImage(
+        const cv::Mat &image,
+        int downPyrs);
+
     static std::vector<Point2D> multipleMinMaxLoc(
         const cv::Mat &image,
         int maximumMatches,
         int method);
+
+    static Point2D updatedSearchPoint(
+        const cv::Size &targetSize,
+        std::vector<Point2D> &locations,
+        int currMax,
+        int upPyrs);
+
+    static void updateMatchingPoints(
+        const cv::Mat &source,
+        const cv::Mat &target,
+        cv::Size &resultSize,
+        std::vector<Point2D> locations,
+        MatchingPointList &matchingPointList,
+        int matchPercentage,
+        int maximumMatches,
+        int downPyrs,
+        int searchExpension,
+        int sourceIndex,
+        int method); 
+
+    static bool isTargetFound(
+        const MatchingPointList & matchingPointList,
+        const Point2D &searchPoint,
+        int searchExpansion,
+        int maximumMatches);
 
     static cv::Rect makeSearchRoi(
       const cv::Size &sourceSize,

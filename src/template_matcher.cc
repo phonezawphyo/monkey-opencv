@@ -49,36 +49,9 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
   for (const cv::Mat &source: sources)
   {
 
-    // create copies of the images to modify
-    cv::Mat copyOfSource = source.clone();
-    cv::Mat copyOfTarget = target.clone();
-
-    cv::Size sourceSize = source.size();
-    cv::Size targetSize = target.size();
-
-    // down pyramid the images
-    for(int ii = 0; ii < downPyrs; ii++)
-    {
-      // start with the source image
-      sourceSize.width  = (sourceSize.width  + 1) / 2;
-      sourceSize.height = (sourceSize.height + 1) / 2;
-
-      cv::Mat smallSource(sourceSize, source.type());
-      cv::pyrDown(copyOfSource, smallSource);
-
-      // prepare for next loop, if any
-      copyOfSource = smallSource.clone();
-
-      // next, do the target
-      targetSize.width  = (targetSize.width  + 1) / 2;
-      targetSize.height = (targetSize.height + 1) / 2;
-
-      cv::Mat smallTarget(targetSize, target.type());
-      pyrDown(copyOfTarget, smallTarget);
-
-      // prepare for next loop, if any
-      copyOfTarget = smallTarget.clone();
-    }
+    // Down size images
+    cv::Mat copyOfSource = downPyrImage(source, downPyrs);
+    cv::Mat copyOfTarget = downPyrImage(target, downPyrs);
 
     // perform the match on the shrunken images
     cv::Size smallTargetSize = copyOfTarget.size();
@@ -99,79 +72,146 @@ MatchingPointList TemplateMatcher::fastMatchTemplate(
     std::vector<Point2D> locations = multipleMinMaxLoc(result,
         maximumMatches,
         method);
+    
+    updateMatchingPoints(source, target,
+        resultSize,
+        locations,
+        matchingPointList,
+        matchPercentage,
+        maximumMatches,
+        downPyrs,
+        searchExpansion,
+        sourceIndex,
+        method);
 
-    // search the large images at the returned locations
-    sourceSize = source.size();
-    targetSize = target.size();
-
-    int twoPowerNumDownPyrs = std::pow(2.0f, downPyrs);
-
-    // create a copy of the source in order to adjust its ROI for searching
-    for(int currMax = 0; currMax < maximumMatches; ++currMax)
-    {
-      // transform the point to its corresponding point in the larger image
-      Point2D &currMaxLocation = locations[currMax];
-      currMaxLocation *= twoPowerNumDownPyrs;
-      currMaxLocation.setPoint(
-          currMaxLocation.x() + targetSize.width / 2,
-          currMaxLocation.y() + targetSize.height / 2);
-
-
-      const Point2D &searchPoint = locations.at(currMax);
-
-      // if we are searching for multiple targets and we have found a target or
-      //  multiple targets, we don't want to search in the same location(s) again
-      if(maximumMatches > 1 && !matchingPointList.empty())
-      {
-        bool thisTargetFound = false;
-
-        for(int currPoint = 0;(unsigned long) currPoint < matchingPointList.size(); currPoint++)
-        {
-          const Point2D &foundPoint = matchingPointList.at(currPoint).position;
-          if(std::abs(searchPoint.x() - foundPoint.x()) <= searchExpansion * 2 &&
-              std::abs(searchPoint.y() - foundPoint.y()) <= searchExpansion * 2)
-          {
-            thisTargetFound = true;
-            break;
-          }
-        }
-
-        // if the current target has been found, continue onto the next point
-        if(thisTargetFound)
-          continue;
-      }
-
-      // set the source image's ROI to slightly larger than the target image,
-      //  centred at the current point
-
-      cv::Rect searchRoi = makeSearchRoi(sourceSize, searchPoint, target, searchExpansion);
-
-      // Invoke cv::matchTemplate
-      result = searchImage(source, target, searchRoi, resultSize, method);
-
-      // Find best match location
-      MatchingPoint mpt = findBestMatchLocation(
-          result,
-          target,
-          searchRoi,
-          sourceIndex,
-          matchPercentage,
-          method);
-
-      if (mpt.empty) {
-        break;
-      } else {
-        matchingPointList.push_back(mpt);
-        
-        if(maximumMatches <= 1) {
-          break;
-        }
-      }
-    }
     ++sourceIndex;
   }
 
   return matchingPointList;
+}
+
+cv::Mat TemplateMatcher::downPyrImage(
+    const cv::Mat &image,
+    int downPyrs) {
+
+  // create copies of the images to modify
+  cv::Mat imageCopy = image.clone();
+  cv::Size imageSize = image.size();
+
+  // down pyramid the images
+  for(int ii = 0; ii < downPyrs; ii++)
+  {
+    // start with the image image
+    imageSize.width  = (imageSize.width  + 1) / 2;
+    imageSize.height = (imageSize.height + 1) / 2;
+
+    cv::Mat smallImage(imageSize, image.type());
+    cv::pyrDown(imageCopy, smallImage);
+
+    // prepare for next loop, if any
+    imageCopy = smallImage.clone();
+  }
+
+  return imageCopy;
+}
+    
+void TemplateMatcher::updateMatchingPoints(
+    const cv::Mat &source,
+    const cv::Mat &target,
+    cv::Size &resultSize,
+    std::vector<Point2D> locations,
+    MatchingPointList &matchingPointList,
+    int matchPercentage,
+    int maximumMatches,
+    int downPyrs,
+    int searchExpansion,
+    int sourceIndex,
+    int method) {
+
+  // search the large images at the returned locations
+  cv::Size sourceSize = source.size();
+  cv::Size targetSize = target.size();
+
+  int upPyrs = std::pow(2.0f, downPyrs);
+
+
+  // create a copy of the source in order to adjust its ROI for searching
+  for(int currMax = 0; currMax < maximumMatches; ++currMax)
+  {
+    // transform the point to its corresponding point in the larger image
+    const Point2D &searchPoint = updatedSearchPoint(targetSize, locations, currMax, upPyrs);
+
+    // Do next target if this target is found
+    if (isTargetFound(matchingPointList, searchPoint, searchExpansion, maximumMatches)) {
+      continue;
+    }
+
+    // set the source image's ROI to slightly larger than the target image,
+    //  centred at the current point
+    cv::Rect searchRoi = makeSearchRoi(sourceSize, searchPoint, target, searchExpansion);
+
+    // Invoke cv::matchTemplate
+    cv::Mat result = searchImage(source, target, searchRoi, resultSize, method);
+
+    // Find best match location
+    MatchingPoint matchPoint = findBestMatchLocation(result, target, searchRoi,
+        sourceIndex, matchPercentage, method);
+
+    if (matchPoint.empty) {
+      break;
+    } else {
+      matchingPointList.push_back(matchPoint);
+
+      if(maximumMatches <= 1) {
+        break;
+      }
+    }
+  }
+}
+
+Point2D TemplateMatcher::updatedSearchPoint(
+    const cv::Size &targetSize,
+    std::vector<Point2D> &locations,
+    int currMax,
+    int upPyrs) {
+
+  Point2D &currMaxLocation = locations[currMax];
+  currMaxLocation *= upPyrs;
+  currMaxLocation.setPoint(
+      currMaxLocation.x() + targetSize.width / 2,
+      currMaxLocation.y() + targetSize.height / 2);
+
+  return currMaxLocation;
+}
+
+/* If we are searching for multiple targets and we have found a target or
+ *  multiple targets, we don't want to search in the same location(s) again
+ */
+bool TemplateMatcher::isTargetFound(
+    const MatchingPointList & matchingPointList,
+    const Point2D &searchPoint,
+    int searchExpansion,
+    int maximumMatches) {
+
+  if(maximumMatches > 1 && !matchingPointList.empty())
+  {
+    bool thisTargetFound = false;
+
+    for(int currPoint = 0;(unsigned long) currPoint < matchingPointList.size(); currPoint++)
+    {
+      const Point2D &foundPoint = matchingPointList.at(currPoint).position;
+      if(std::abs(searchPoint.x() - foundPoint.x()) <= searchExpansion * 2 &&
+          std::abs(searchPoint.y() - foundPoint.y()) <= searchExpansion * 2)
+      {
+        thisTargetFound = true;
+        break;
+      }
+    }
+
+    return thisTargetFound;
+  } else {
+    return false;
+  }
 }
 
 cv::Mat TemplateMatcher::searchImage(
