@@ -1,12 +1,19 @@
 #include <nan.h>
-#include "async.h"  // NOLINT(build/include)
+#include "find_sub_image.h"
+#include "opencv.h"
+#include "contours.h"
+#include "constants.h"
+#include "matrix.h"
 
 using namespace v8;
 
 // Expose synchronous and asynchronous access to our
 NAN_MODULE_INIT(InitAll) {
-  Nan::Set(target, Nan::New<String>("findSubImage").ToLocalChecked(),
-    Nan::GetFunction(Nan::New<FunctionTemplate>(CalculateAsync)).ToLocalChecked());
+  FindSubImage::Init(target);
+  OpenCV::Init(target);
+  Matrix::Init(target);
+  Contour::Init(target);
+  Constants::Init(target);
 }
 
-NODE_MODULE(addon, InitAll)
+NODE_MODULE(fast_template_matcher, InitAll)

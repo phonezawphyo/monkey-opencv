@@ -1,76 +1,49 @@
-//#include <node.h>
-#include <nan.h>
-#include "template_matcher.h"
-#include "async.h"
+#include "find_sub_image.h"
 
 using namespace v8;
 
-class FindImageWorker : public Nan::AsyncWorker {
-  public:
-    FindImageWorker(Nan::Callback *callback,
-			std::string source,
-      std::string target,
-      int matchPercent,
-      int maximumMatches,
-      int downPyramids,
-      int searchExpansion) : AsyncWorker(callback),
-        source(source), target(target), matchPercent(matchPercent), maximumMatches(maximumMatches), downPyramids(downPyramids), searchExpansion(searchExpansion) {
+void FindSubImage::Execute() {
+  matches = TemplateMatcher::fastMatchTemplate(
+      source.c_str(),
+      target.c_str(), 
+      matchPercent,
+      maximumMatches,
+      downPyramids,
+      searchExpansion);
+}
 
-    }
+Local<Array> FindSubImage::toResult() {
+  Local<Array> array = Nan::New<Array>();
 
-    ~FindImageWorker() {}
+  for(std::vector<int>::size_type i = 0; i != matches.size(); i++) {
+    MatchingPoint point = matches.at(i);
+    Local<Object> positionObj = Nan::New<Object>();
+    Local<Object> pointObj = Nan::New<Object>();
 
-    void Execute() {
-      matches = TemplateMatcher::fastMatchTemplate(
-          source.c_str(),
-          target.c_str(), 
-          matchPercent,
-          maximumMatches,
-          downPyramids,
-          searchExpansion);
-    }
+    Nan::Set(positionObj, Nan::New("x").ToLocalChecked(),Nan::New(point.position.x()));
+    Nan::Set(positionObj, Nan::New("y").ToLocalChecked(),Nan::New(point.position.y()));
+    Nan::Set(pointObj, Nan::New("position").ToLocalChecked(),positionObj);
+    Nan::Set(pointObj, Nan::New("confidence").ToLocalChecked(),Nan::New(point.confidence));
+    Nan::Set(pointObj, Nan::New("imageIndex").ToLocalChecked(),Nan::New(point.imageIndex));
 
-    Local<Array> toResult() {
-      Local<Array> array = Nan::New<Array>();
+    Nan::Set(array, i, pointObj);
+  }
 
-      for(std::vector<int>::size_type i = 0; i != matches.size(); i++) {
-        MatchingPoint point = matches.at(i);
-        Local<Object> positionObj = Nan::New<Object>();
-        Local<Object> pointObj = Nan::New<Object>();
+  return array;
+}
 
-        Nan::Set(positionObj, Nan::New("x").ToLocalChecked(),Nan::New(point.position.x()));
-        Nan::Set(positionObj, Nan::New("y").ToLocalChecked(),Nan::New(point.position.y()));
-        Nan::Set(pointObj, Nan::New("position").ToLocalChecked(),positionObj);
-        Nan::Set(pointObj, Nan::New("confidence").ToLocalChecked(),Nan::New(point.confidence));
-        Nan::Set(pointObj, Nan::New("imageIndex").ToLocalChecked(),Nan::New(point.imageIndex));
+void FindSubImage::HandleOKCallback() {
+  Nan::EscapableHandleScope scope;
 
-        Nan::Set(array, i, pointObj);
-      }
+  Local<Array> array = toResult();
 
-      return array;
-    };
+  Local<Value> argv[] = {
+    array
+  };
 
-    void HandleOKCallback() {
-      Nan::EscapableHandleScope scope;
+  callback->Call(1, argv);
+}
 
-      Local<Array> array = toResult();
-
-      Local<Value> argv[] = {
-        array
-      };
-
-      callback->Call(1, argv);
-    }
-
-	private:
-    std::string source;
-    std::string target;
-		int matchPercent;
-		int maximumMatches;
-		int downPyramids;
-		int searchExpansion;
-    MatchingPointList matches;
-};
 
 int extractIntArgument(const char * key, Local<Object> o, int defaultValue) {
 
@@ -102,7 +75,7 @@ int extractIntArgument(const char * key, Local<Object> o, int defaultValue) {
  * - downPyramids: (1) int >= 1,
  * - searchExpansion: (15) int >= 1,
  */
-NAN_METHOD(CalculateAsync) {
+NAN_METHOD(FindSubImage::findSubImage) {
   Isolate* isolate = Isolate::GetCurrent();
   Nan::EscapableHandleScope scope;
 
@@ -149,7 +122,7 @@ NAN_METHOD(CalculateAsync) {
     // Sync
 
     Nan::Callback *callback = new Nan::Callback();
-    FindImageWorker *worker = new FindImageWorker(callback,
+    FindSubImage *worker = new FindSubImage(callback,
         std::string(*source),
         std::string(*tmpl),
         matchPercent,
@@ -165,7 +138,7 @@ NAN_METHOD(CalculateAsync) {
     // Async
 
     Nan::Callback *callback = new Nan::Callback(info[1].As<Function>());
-    FindImageWorker *worker = new FindImageWorker(callback,
+    FindSubImage *worker = new FindSubImage(callback,
         std::string(*source),
         std::string(*tmpl),
         matchPercent,
@@ -176,3 +149,11 @@ NAN_METHOD(CalculateAsync) {
 
   }
 }
+
+void FindSubImage::Init(v8::Local<v8::Object> target) {
+  v8::Local<Function> fn = Nan::GetFunction(Nan::New<FunctionTemplate>(findSubImage)).ToLocalChecked();
+
+  Nan::Set(target, Nan::New<String>("findSubImage").ToLocalChecked(),
+    fn);
+}
+

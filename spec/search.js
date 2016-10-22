@@ -1,7 +1,7 @@
 const search = require('../index.js');
 var assert = require('assert');
 
-describe('Basic search', function () {
+describe('Smoke FindSubImage', function () {
   it('should async find single subimage', function (done) {
     search.findSubImage({
       source: 'spec/fixtures/screen.png',

@@ -60,7 +60,8 @@ npm install --global --production windows-build-tools
 ```
 
 
-# Reference sources
+# References
 
 1. https://github.com/Jmgr/actiona
 2. https://github.com/monai/node-imagesearch
+3. https://github.com/peterbraden/node-opencv

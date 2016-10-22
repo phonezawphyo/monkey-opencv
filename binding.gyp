@@ -7,10 +7,11 @@
          "src/addon.cc",
          "src/template_matcher.cc",
          "src/addon.cc",
-         "src/async.cc",
+         "src/find_sub_image.cc",
          "src/contours.cc",
          "src/matrix.cc",
          "src/opencv.cc",
+         "src/constants.cc",
        ],
 
       "include_dirs": [ "<!(node -e \"require('nan')\")" ],
