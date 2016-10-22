@@ -29,9 +29,10 @@
   },
   "homepage": "https://github.com/phonezawphyo/node-fast-template-matcher#readme",
   "dependencies": {
-    "bindings": "^1.2.1",
-    "nan": "^2.4.0",
     "aws-sdk": "^2.6.9",
+    "bindings": "^1.2.1",
+    "buffers": "^0.1.1",
+    "nan": "^2.4.0",
     "node-pre-gyp": "^0.6.30"
   },
   "devDependencies": {
