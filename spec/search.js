@@ -14,6 +14,7 @@ describe('Smoke FindSubImage', function () {
     }, function(matches){
       assert.deepEqual(matches,[{
         position: { x: 78, y: 610 },
+        rect: { x: 36, y: 568, width: 85, height: 84 },
         confidence: 99,
         templateIndex: 0
       }]);
@@ -40,10 +41,12 @@ describe('Smoke FindSubImage', function () {
     .then(function(matches){
       assert.deepEqual(matches,[{
         position: { x: 78, y: 610 },
+        rect: { x: 36, y: 568, width: 85, height: 84 },
         confidence: 99,
         templateIndex: 0
       }, {
         position: { x: 146, y: 314},
+        rect: { x: 110, y: 278, width: 72, height: 73 },
         confidence: 99,
         templateIndex: 1
       }]);

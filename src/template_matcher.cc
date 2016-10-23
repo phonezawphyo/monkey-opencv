@@ -249,9 +249,12 @@ MatchingPoint TemplateMatcher::findBestMatchLocation(
 
   value *= 100.0;
 
+  const cv::Size &size = target.size();
   // transform point back to original image
-  loc.x += searchRoi.x + target.size().width / 2;
-  loc.y += searchRoi.y + target.size().height / 2;
+  loc.x += searchRoi.x + size.width / 2;
+  loc.y += searchRoi.y + size.height / 2;
+
+  cv::Rect rect(loc.x - size.width / 2,loc.y - size.height / 2, size.width, size.height);
 
   if(method == CV_TM_SQDIFF_NORMED)
     value = 100.0f - value;
@@ -259,7 +262,7 @@ MatchingPoint TemplateMatcher::findBestMatchLocation(
   if(value >= matchPercentage)
   {
     // add the point to the list
-    return MatchingPoint(Point2D(loc.x, loc.y), value, templateIndex);
+    return MatchingPoint(Point2D(loc.x, loc.y), rect, value, templateIndex);
   }
   else
   {

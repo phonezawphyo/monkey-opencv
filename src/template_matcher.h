@@ -8,7 +8,7 @@ class TemplateMatcher {
   public:
     int matchPercentage = 70;
     int maximumMatches = 1;
-    int downPyrs = 1;
+    int downPyrs = 0;
     int searchExpansion = 15;
     int method = CV_TM_SQDIFF_NORMED;
 

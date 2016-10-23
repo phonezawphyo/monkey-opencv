@@ -13,6 +13,7 @@ void FindSubImage::Execute() {
   }
 }
 
+
 void FindSubImage::HandleOKCallback() {
   Nan::EscapableHandleScope scope;
 
@@ -25,9 +26,14 @@ void FindSubImage::HandleOKCallback() {
   callback->Call(1, argv);
 }
 
+
 void FindSubImage::HandleErrorCallback() {
-  Nan::ThrowTypeError(ErrorMessage());
+  Local<String> msg = Nan::New("findSubImage error: ").ToLocalChecked();
+  Local<String> errMsg = Nan::New(ErrorMessage()).ToLocalChecked();
+  msg = String::Concat(msg, errMsg);
+  Nan::ThrowError(msg);
 }
+
 
 Local<Array> FindSubImage::toResult() {
   Local<Array> array = Nan::New<Array>();
@@ -35,11 +41,19 @@ Local<Array> FindSubImage::toResult() {
   for(std::vector<int>::size_type i = 0; i != matches.size(); i++) {
     MatchingPoint point = matches.at(i);
     Local<Object> positionObj = Nan::New<Object>();
+    Local<Object> rectObj = Nan::New<Object>();
     Local<Object> pointObj = Nan::New<Object>();
 
     Nan::Set(positionObj, Nan::New("x").ToLocalChecked(),Nan::New(point.position.x()));
     Nan::Set(positionObj, Nan::New("y").ToLocalChecked(),Nan::New(point.position.y()));
+
+    Nan::Set(rectObj, Nan::New("x").ToLocalChecked(),Nan::New(point.rect.x));
+    Nan::Set(rectObj, Nan::New("y").ToLocalChecked(),Nan::New(point.rect.y));
+    Nan::Set(rectObj, Nan::New("width").ToLocalChecked(),Nan::New(point.rect.width));
+    Nan::Set(rectObj, Nan::New("height").ToLocalChecked(),Nan::New(point.rect.height));
+
     Nan::Set(pointObj, Nan::New("position").ToLocalChecked(),positionObj);
+    Nan::Set(pointObj, Nan::New("rect").ToLocalChecked(),rectObj);
     Nan::Set(pointObj, Nan::New("confidence").ToLocalChecked(),Nan::New(point.confidence));
     Nan::Set(pointObj, Nan::New("templateIndex").ToLocalChecked(),Nan::New(point.imageIndex));
 

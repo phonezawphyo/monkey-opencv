@@ -70,12 +70,12 @@ bindings.MonkeyAlgo = {
             next(null, sourceMat);
           });
         } else {
-          throw new TypeError(key);
+          throw new TypeError(`${key} (String, Matrix or Buffer expected)`);
         }
       } else if (typeof o == 'object') {
         next(null, o);
       } else {
-        throw new TypeError(key);
+        throw new TypeError(`${key} (String, Matrix or Buffer expected)`);
       }
     };
 
@@ -90,7 +90,7 @@ bindings.MonkeyAlgo = {
         templates: function(next) {
           if (options.templates instanceof Array) {
             async.map(options.templates, function(o, next) {
-              readIfNeeded(o, 'templates', next);
+              readIfNeeded(o, 'templates[]', next);
             }, function(err, templates) {
               options.templates = templates;
               options.template = templates[0];
@@ -103,20 +103,36 @@ bindings.MonkeyAlgo = {
       }, function(err, results) {
 
         if (typeof options.source === 'undefined') {
-          throw 'Invalid argument: source';
+          throw new TypeError('source (String, Matrix or Buffer expected)');
         }
-        /* 
-         * - source: Source image url/Matrix
-         * - templates: [Template image urls/Matrices]
-         * - matchPercent: (70) int 0 ~ 100
-         * - maximumMatches: (1) int >= 1 ,
-         * - downPyramids: (1) int >= 1,
-         * - searchExpansion: (15) int >= 1,
-         * - method: 0~6
-         */
+
+        if (typeof options.matchPercent === 'undefined') {
+          options.matchPercent = 70;
+        }
+
+        if (typeof options.maximumMatches === 'undefined') {
+          options.maximumMatches = 1;
+        }
+
+        if (typeof options.downPyramids === 'undefined') {
+          options.downPyramids = 0;
+        }
+
+        if (typeof options.searchExpansion === 'undefined') {
+          options.searchExpansion = 0;
+        }
+
         if (typeof options.method === 'undefined') {
           options.method = Constants.TM_SQDIFF_NORMED;
         }
+
+        ['matchPercent', 'maximumMatches', 'downPyramids', 'searchExpansion', 'method']
+        .forEach(function(key) {
+          if (typeof options[key] !== 'number') {
+            throw new TypeError(`${key} (Number expected)`);
+          }
+        });
+
         nativeFindSubImage(
           options.source,
           options.templates,

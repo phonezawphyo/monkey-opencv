@@ -19,11 +19,13 @@
 
 #include "point.h"
 #include <vector>
+#include <opencv/cv.h>
 
 struct MatchingPoint
 {
-    MatchingPoint(const Point2D &position, int confidence, int imageIndex)
+    MatchingPoint(const Point2D &position, const cv::Rect &rect, int confidence, int imageIndex)
         : position(position),
+          rect(rect),
           confidence(confidence),
           imageIndex(imageIndex) {
       empty = false;
@@ -33,8 +35,9 @@ struct MatchingPoint
     }
 
     Point2D position;
-    int confidence = -1;
-    int imageIndex = -1;
+    cv::Rect rect;
+    int confidence;
+    int imageIndex;
     bool empty = true;
 };
 
