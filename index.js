@@ -71,8 +71,12 @@ bindings.MonkeyAlgo = {
         } else {
           throw new TypeError(`${key} (String, Matrix or Buffer expected)`);
         }
-      } else if (typeof o == 'object') {
+      } else if (o instanceof Matrix) {
         next(null, o);
+      } else if (o instanceof Buffer) {
+          bindings.readImage(o, function(err, sourceMat){
+            next(null, sourceMat);
+          });
       } else {
         throw new TypeError(`${key} (String, Matrix or Buffer expected)`);
       }
@@ -118,7 +122,7 @@ bindings.MonkeyAlgo = {
         }
 
         if (typeof options.searchExpansion === 'undefined') {
-          options.searchExpansion = 0;
+          options.searchExpansion = 10;
         }
 
         if (typeof options.method === 'undefined') {

@@ -1,10 +1,11 @@
 const constants = require('../index.js').Constants;
-const search = require('../index.js').MonkeyAlgo;
+const MonkeyAlgo = require('../index.js').MonkeyAlgo;
 var assert = require('assert');
+var fs = require('fs');
 
 describe('Smoke MonkeyAlgo.findSubImage', function () {
   it('should find single subimage (callback)', function (done) {
-    search.findSubImage({
+    MonkeyAlgo.findSubImage({
       source: 'spec/fixtures/screen.png',
       templates: ['spec/fixtures/g.png'],
       matchPercent: 70,
@@ -24,7 +25,7 @@ describe('Smoke MonkeyAlgo.findSubImage', function () {
   });
 
   it('should find two subimages, not find one invalid image (promise)', function () {
-    return search.findSubImage({
+    return MonkeyAlgo.findSubImage({
       source: 'spec/fixtures/screen.png',
       templates: [
         'spec/fixtures/g.png',
@@ -52,8 +53,8 @@ describe('Smoke MonkeyAlgo.findSubImage', function () {
     });
   });
 
-  it('should find car template', function (done) {
-    search.findSubImage({
+  it('should find car template (from String filename)', function (done) {
+    MonkeyAlgo.findSubImage({
       source: 'spec/fixtures/car1.jpg',
       templates: ['spec/fixtures/car1_template.jpg'],
       matchPercent: 99,
@@ -70,5 +71,29 @@ describe('Smoke MonkeyAlgo.findSubImage', function () {
 
       done();
     })
+  });
+
+  it('should find car template (from Buffer and Matrix)', function (done) {
+    var img = fs.readFileSync('spec/fixtures/car1.jpg');
+
+    MonkeyAlgo.readImage('spec/fixtures/car1_template.jpg', function(err, tmpl1) {
+      MonkeyAlgo.findSubImage({
+        source: img,
+        templates: [tmpl1],
+        matchPercent: 99,
+        maximumMatches: 1,
+        downPyramids: 4,
+        searchExpansion: 15,
+      }, function(matches){
+        assert.deepEqual(matches,[{
+          position: { x: 195, y: 370 },
+          rect: { x: 42, y: 263, width: 307, height: 214 },
+          confidence: 99,
+          templateIndex: 0
+        }]);
+
+        done();
+      });
+    });
   });
 });
