@@ -13,10 +13,10 @@ MatchingPointList TemplateMatcher::match(
 
   int templateIndex = 0;
 
+  cv::Mat copyOfSource = downPyrImage(source);
+
   for (const cv::Mat &target: templates) {
     
-    // Down size images
-    cv::Mat copyOfSource = downPyrImage(source);
     cv::Mat copyOfTarget = downPyrImage(target);
     cv::Mat result = makeResult(source, target);
 
@@ -94,7 +94,6 @@ void TemplateMatcher::updateMatchingPoints(
   cv::Size resultSize = result.size();
 
   int upPyrs = std::pow(2.0f, downPyrs);
-
 
   // create a copy of the source in order to adjust its ROI for searching
   for(int currMax = 0; currMax < maximumMatches; ++currMax)
