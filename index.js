@@ -133,6 +133,26 @@ bindings.MonkeyAlgo = {
           }
         });
 
+        if (options.matchPercent < 0 || options.matchPercent > 100) {
+          throw new TypeError('matchPercent (0 <= n <= 100)');
+        }
+
+        if (options.maximumMatches <= 0) {
+          throw new TypeError('maximumMatches (n > 0)');
+        }
+
+        if (options.downPyramids < 0) {
+          throw new TypeError('downPyramids (n >= 0)');
+        }
+
+        if (options.searchExpansion < 0) {
+          throw new TypeError('searchExpansion (n >= 0)');
+        }
+
+        if (options.method < 0 || options.method > 5) {
+          throw new TypeError('method (0 <= n <= 5)');
+        }
+
         nativeFindSubImage(
           options.source,
           options.templates,
@@ -149,14 +169,9 @@ bindings.MonkeyAlgo = {
       execute(options, fn);
     } else {
       return new Promise(function(resolve, reject) {
-        //try {
-          execute(options, function(matches) {
-            resolve(matches);
-          });
-        //} catch(e) {
-        //    console.log('h3',e);
-        //  reject(e);
-        //}
+        execute(options, function(matches) {
+          resolve(matches);
+        });
       });
     }
   },

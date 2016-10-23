@@ -8,7 +8,7 @@ void FindSubImage::Execute() {
 
   try {
     matches = matcher.match(source, templates);
-  } catch(const cv::Exception &e) {
+  } catch (const cv::Exception &e) {
     SetErrorMessage(e.what());
   }
 }
@@ -28,7 +28,7 @@ void FindSubImage::HandleOKCallback() {
 
 
 void FindSubImage::HandleErrorCallback() {
-  Local<String> msg = Nan::New("findSubImage error: ").ToLocalChecked();
+  Local<String> msg = Nan::New("FindSubImage error: ").ToLocalChecked();
   Local<String> errMsg = Nan::New(ErrorMessage()).ToLocalChecked();
   msg = String::Concat(msg, errMsg);
   Nan::ThrowError(msg);

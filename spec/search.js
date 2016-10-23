@@ -21,7 +21,6 @@ describe('Smoke FindSubImage', function () {
 
       done();
     })
-
   });
 
   it('should find two subimages, not find one invalid image (promise)', function () {
@@ -51,5 +50,25 @@ describe('Smoke FindSubImage', function () {
         templateIndex: 1
       }]);
     });
+  });
+
+  it('should find car template', function (done) {
+    search.findSubImage({
+      source: 'spec/fixtures/car1.jpg',
+      templates: ['spec/fixtures/car1_template.jpg'],
+      matchPercent: 99,
+      maximumMatches: 1,
+      downPyramids: 4,
+      searchExpansion: 15,
+    }, function(matches){
+      assert.deepEqual(matches,[{
+        position: { x: 195, y: 370 },
+        rect: { x: 42, y: 263, width: 307, height: 214 },
+        confidence: 99,
+        templateIndex: 0
+      }]);
+
+      done();
+    })
   });
 });

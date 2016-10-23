@@ -250,6 +250,7 @@ MatchingPoint TemplateMatcher::findBestMatchLocation(
   value *= 100.0;
 
   const cv::Size &size = target.size();
+
   // transform point back to original image
   loc.x += searchRoi.x + size.width / 2;
   loc.y += searchRoi.y + size.height / 2;
