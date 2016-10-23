@@ -5,7 +5,28 @@ using namespace v8;
 
 void FindSubImage::Execute() {
   TemplateMatcher matcher(matchPercent, maximumMatches, downPyramids, searchExpansion, method);
-  matches = matcher.match(source, templates);
+
+  try {
+    matches = matcher.match(source, templates);
+  } catch(const cv::Exception &e) {
+    SetErrorMessage(e.what());
+  }
+}
+
+void FindSubImage::HandleOKCallback() {
+  Nan::EscapableHandleScope scope;
+
+  Local<Array> array = toResult();
+
+  Local<Value> argv[] = {
+    array
+  };
+
+  callback->Call(1, argv);
+}
+
+void FindSubImage::HandleErrorCallback() {
+  Nan::ThrowTypeError(ErrorMessage());
 }
 
 Local<Array> FindSubImage::toResult() {
@@ -26,18 +47,6 @@ Local<Array> FindSubImage::toResult() {
   }
 
   return array;
-}
-
-void FindSubImage::HandleOKCallback() {
-  Nan::EscapableHandleScope scope;
-
-  Local<Array> array = toResult();
-
-  Local<Value> argv[] = {
-    array
-  };
-
-  callback->Call(1, argv);
 }
 
 
@@ -112,6 +121,7 @@ NAN_METHOD(FindSubImage::findSubImage) {
       method);
   Nan::AsyncQueueWorker(worker);
 }
+
 
 void FindSubImage::Init(v8::Local<v8::Object> target) {
   v8::Local<Function> fn = Nan::GetFunction(Nan::New<FunctionTemplate>(findSubImage)).ToLocalChecked();

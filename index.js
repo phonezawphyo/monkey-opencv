@@ -63,47 +63,57 @@ bindings.MonkeyAlgo = {
 
   findSubImage: function(options, fn) {
 
-    var readIfNeeded = function(o, next) {
+    var readIfNeeded = function(o, key, next) {
       if (typeof o === 'string') {
-        bindings.readImage(o, function(err, sourceMat){
-          next(null, sourceMat);
-        });
-      } else if (typeof val == 'object') {
+        if (o.length > 0) {
+          bindings.readImage(o, function(err, sourceMat){
+            next(null, sourceMat);
+          });
+        } else {
+          throw new TypeError(key);
+        }
+      } else if (typeof o == 'object') {
         next(null, o);
       } else {
-        throw `Invalid ${key}`;
+        throw new TypeError(key);
       }
     };
 
     var execute = function(options, fn) {
       async.parallel({
         source: function(next) {
-          readIfNeeded(options.source, function(err, source) {
+          readIfNeeded(options.source, 'source', function(err, source) {
             options.source = source;
             next(null, null);
           });
         },
         templates: function(next) {
           if (options.templates instanceof Array) {
-            async.map(options.templates, readIfNeeded, function(err, templates) {
+            async.map(options.templates, function(o, next) {
+              readIfNeeded(o, 'templates', next);
+            }, function(err, templates) {
               options.templates = templates;
               options.template = templates[0];
               next(null, null);
             });
           } else {
-            throw 'Invalid templates: Array expected.';
+            throw new TypeError('templates: Array expected.');
           }
         }
       }, function(err, results) {
-/* 
- * - source: Source image url/Matrix
- * - templates: [Template image urls/Matrices]
- * - matchPercent: (70) int 0 ~ 100
- * - maximumMatches: (1) int >= 1 ,
- * - downPyramids: (1) int >= 1,
- * - searchExpansion: (15) int >= 1,
- * - method: 0~6
- */
+
+        if (typeof options.source === 'undefined') {
+          throw 'Invalid argument: source';
+        }
+        /* 
+         * - source: Source image url/Matrix
+         * - templates: [Template image urls/Matrices]
+         * - matchPercent: (70) int 0 ~ 100
+         * - maximumMatches: (1) int >= 1 ,
+         * - downPyramids: (1) int >= 1,
+         * - searchExpansion: (15) int >= 1,
+         * - method: 0~6
+         */
         if (typeof options.method === 'undefined') {
           options.method = Constants.TM_SQDIFF_NORMED;
         }

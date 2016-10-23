@@ -23,13 +23,15 @@ class FindSubImage: public Nan::AsyncWorker {
 
     void Execute();
     void HandleOKCallback();
+    void HandleErrorCallback();
     
-    v8::Local<v8::Array> toResult();
 
     static void Init(v8::Local<v8::Object> target);
     static NAN_METHOD(findSubImage);
 
 	private:
+
+    v8::Local<v8::Array> toResult();
 
     cv::Mat source;
     std::vector<cv::Mat> templates;
