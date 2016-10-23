@@ -1,16 +1,11 @@
 #include "find_sub_image.h"
+#include "matrix.h"
 
 using namespace v8;
 
 void FindSubImage::Execute() {
-  matches = TemplateMatcher::fastMatchTemplate(
-      source.c_str(),
-      target.c_str(), 
-      matchPercent,
-      maximumMatches,
-      downPyramids,
-      searchExpansion,
-			method);
+  TemplateMatcher matcher(matchPercent, maximumMatches, downPyramids, searchExpansion, method);
+  matches = matcher.match(source, templates);
 }
 
 Local<Array> FindSubImage::toResult() {
@@ -25,7 +20,7 @@ Local<Array> FindSubImage::toResult() {
     Nan::Set(positionObj, Nan::New("y").ToLocalChecked(),Nan::New(point.position.y()));
     Nan::Set(pointObj, Nan::New("position").ToLocalChecked(),positionObj);
     Nan::Set(pointObj, Nan::New("confidence").ToLocalChecked(),Nan::New(point.confidence));
-    Nan::Set(pointObj, Nan::New("imageIndex").ToLocalChecked(),Nan::New(point.imageIndex));
+    Nan::Set(pointObj, Nan::New("templateIndex").ToLocalChecked(),Nan::New(point.imageIndex));
 
     Nan::Set(array, i, pointObj);
   }
@@ -69,89 +64,53 @@ int extractIntArgument(const char * key, Local<Object> o, int defaultValue) {
 
 /* options
  * =======
- * - source: Source image url
- * - template: Template image url
+ * - source: Source image url/Matrix
+ * - templates: [Template image urls/Matrices]
  * - matchPercent: (70) int 0 ~ 100
  * - maximumMatches: (1) int >= 1 ,
  * - downPyramids: (1) int >= 1,
  * - searchExpansion: (15) int >= 1,
+ * - method: 0~6
+ * - callback: fn
  */
 NAN_METHOD(FindSubImage::findSubImage) {
-  Isolate* isolate = Isolate::GetCurrent();
   Nan::EscapableHandleScope scope;
 
   int argc = info.Length();
-  if (argc != 1 && argc != 2) {
-    Nan::ThrowTypeError("Wrong number of arguments (2)");
+  if (argc != 8) {
+    Nan::ThrowTypeError("Wrong number of arguments (8)");
     return;
   }
 
-	Local<Object> o = info[0].As<Object>();
+  // Extract arguments
+  cv::Mat source = Nan::ObjectWrap::Unwrap<Matrix>(info[0]->ToObject())->mat;
+  Local<Array> templateArray = Local<Array>::Cast(info[1]->ToObject());
+  int matchPercent = info[2]->NumberValue();
+  int maximumMatches = info[3]->NumberValue();
+  int downPyramids = info[4]->NumberValue();;
+  int searchExpansion = info[5]->NumberValue();
+  int method = info[6]->NumberValue();
+  Nan::Callback *callback = new Nan::Callback(info[7].As<Function>());
 
-  if (!o->IsObject()) {
-    Nan::ThrowTypeError("Wrong arguments");
-    return;
+  // Unwrap source
+  std::vector<cv::Mat> templates;
+  templates.reserve(templateArray->Length());
+
+	for(uint32_t idx = 0; idx < templateArray->Length(); ++idx) {
+    Matrix* tmpl = Nan::ObjectWrap::Unwrap<Matrix>(templateArray->Get(idx)->ToObject());
+    templates.push_back(tmpl->mat);
   }
 
-  Local<String> strSource = Nan::New("source").ToLocalChecked();
-  Local<String> strTemplate = Nan::New("template").ToLocalChecked();
-
-  Nan::Utf8String source(o->Get(strSource)->ToString());
-  Nan::Utf8String tmpl(o->Get(strTemplate)->ToString());
-
-  if (!o->Has(strSource)) {
-    isolate->ThrowException(Exception::TypeError(Nan::New("Missing argument 'source'").ToLocalChecked()));
-		return;
-  }
-
-  if (!o->Has(strTemplate)) {
-    isolate->ThrowException(Exception::TypeError(Nan::New("Missing argument 'template'").ToLocalChecked()));
-		return;
-  } 
-
-  int matchPercent = extractIntArgument("matchPercent", o, 70);
-  int maximumMatches = extractIntArgument("maximumMatches", o, 1);
-  int downPyramids = extractIntArgument("downPyramids", o, 1);
-  int searchExpansion = extractIntArgument("searchExpansion", o, 15);
-  int method = extractIntArgument("method", o, CV_TM_SQDIFF_NORMED);
-
-  if (matchPercent == -1 || maximumMatches == -1 || downPyramids == -1 || searchExpansion == -1 || method == -1) {
-    return;
-  }
-
-
-  if (argc == 1) {
-    // Sync
-
-    Nan::Callback *callback = new Nan::Callback();
-    FindSubImage *worker = new FindSubImage(callback,
-        std::string(*source),
-        std::string(*tmpl),
-        matchPercent,
-        maximumMatches,
-        downPyramids,
-        searchExpansion,
-        method);
-    worker->Execute();
-    Local<Array> array = worker->toResult();
-
-    info.GetReturnValue().Set(array);
-
-  } else if (argc == 2) {
-    // Async
-
-    Nan::Callback *callback = new Nan::Callback(info[1].As<Function>());
-    FindSubImage *worker = new FindSubImage(callback,
-        std::string(*source),
-        std::string(*tmpl),
-        matchPercent,
-        maximumMatches,
-        downPyramids,
-        searchExpansion,
-        method);
-    Nan::AsyncQueueWorker(worker);
-
-  }
+  // Exec async
+  FindSubImage *worker = new FindSubImage(callback,
+      source,
+      templates,
+      matchPercent,
+      maximumMatches,
+      downPyramids,
+      searchExpansion,
+      method);
+  Nan::AsyncQueueWorker(worker);
 }
 
 void FindSubImage::Init(v8::Local<v8::Object> target) {

@@ -7,17 +7,19 @@
 class FindSubImage: public Nan::AsyncWorker {
   public:
     FindSubImage(Nan::Callback *callback,
-    	std::string source,
-      std::string target,
+      const cv::Mat &source,
+      const std::vector<cv::Mat> &templates,
       int matchPercent,
       int maximumMatches,
       int downPyramids,
       int searchExpansion,
       int method) : AsyncWorker(callback),
-        source(source), target(target), matchPercent(matchPercent), maximumMatches(maximumMatches), downPyramids(downPyramids), searchExpansion(searchExpansion), method(method) {
+        source(source), templates(templates), matchPercent(matchPercent), maximumMatches(maximumMatches), downPyramids(downPyramids), searchExpansion(searchExpansion), method(method) {
     }
     
-    ~FindSubImage() {}
+    ~FindSubImage() {
+      templates.clear();
+    }
 
     void Execute();
     void HandleOKCallback();
@@ -29,8 +31,8 @@ class FindSubImage: public Nan::AsyncWorker {
 
 	private:
 
-    std::string source;
-    std::string target;
+    cv::Mat source;
+    std::vector<cv::Mat> templates;
 		int matchPercent;
 		int maximumMatches;
 		int downPyramids;

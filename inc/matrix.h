@@ -14,12 +14,12 @@
 
 namespace fast_template_matcher {
 
-class Matrix: public Nan::ObjectWrap {
-public:
-  cv::Mat mat;
-protected:
-  Matrix(): Nan::ObjectWrap() {};
-};
+  class Matrix: public Nan::ObjectWrap {
+    public:
+      cv::Mat mat;
+    protected:
+      Matrix(): Nan::ObjectWrap() {};
+  };
 
 }
 

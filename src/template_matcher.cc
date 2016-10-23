@@ -5,79 +5,38 @@
 
 using namespace v8;
 
-MatchingPointList TemplateMatcher::fastMatchTemplate(
-        const char* source,
-        const char* target,
-        int matchPercentage,
-        int maximumMatches,
-        int downPyrs,
-        int searchExpansion,
-        int method)
-{
-  cv::Mat sourceImg, templateImg;
-
-  sourceImg = cv::imread(source);
-  templateImg = cv::imread(target);
-  
-  std::vector<cv::Mat> sources;
-  sources.reserve(1);
-  sources.push_back(sourceImg);
-
-  return fastMatchTemplate(
-      sources,
-      templateImg,
-      matchPercentage,
-      maximumMatches,
-      downPyrs,
-      searchExpansion,
-      method);
-}
-
-
-MatchingPointList TemplateMatcher::fastMatchTemplate(
-    const std::vector<cv::Mat> &sources,
-    const cv::Mat &target,
-		int matchPercentage,
-		int maximumMatches,
-		int downPyrs,
-		int searchExpansion,
-    int method) {
+MatchingPointList TemplateMatcher::match(
+    const cv::Mat &source,
+    const std::vector<cv::Mat> &templates) {
 
   MatchingPointList matchingPointList;
 
-  int sourceIndex = 0;
+  int templateIndex = 0;
 
-  for (const cv::Mat &source: sources)
-  {
-
+  for (const cv::Mat &target: templates) {
     
     // Down size images
-    cv::Mat copyOfSource = downPyrImage(source, downPyrs);
-    cv::Mat copyOfTarget = downPyrImage(target, downPyrs);
+    cv::Mat copyOfSource = downPyrImage(source);
+    cv::Mat copyOfTarget = downPyrImage(target);
     cv::Mat result = makeResult(source, target);
 
+    // Make matchTemplate result
     cv::matchTemplate(copyOfSource,
         copyOfTarget,
         result,
         method);
 
-    // find the top match locations
-    std::vector<Point2D> locations = multipleMinMaxLoc(result,
-        maximumMatches,
-        method);
+    // Find the top match locations
+    std::vector<Point2D> locations = multipleMinMaxLoc(result);
     
+    // Update matching points in matchingPointList
     updateMatchingPoints(source, target,
         result,
         locations,
         matchingPointList,
-        matchPercentage,
-        maximumMatches,
-        downPyrs,
-        searchExpansion,
-        sourceIndex,
-        method);
+        templateIndex);
 
-    ++sourceIndex;
+    ++templateIndex;
   }
 
   return matchingPointList;
@@ -98,8 +57,7 @@ cv::Mat TemplateMatcher::makeResult(
 }
 
 cv::Mat TemplateMatcher::downPyrImage(
-    const cv::Mat &image,
-    int downPyrs) {
+    const cv::Mat &image) {
 
   // create copies of the images to modify
   cv::Mat imageCopy = image.clone();
@@ -128,12 +86,7 @@ void TemplateMatcher::updateMatchingPoints(
     const cv::Mat &result,
     std::vector<Point2D> locations,
     MatchingPointList &matchingPointList,
-    int matchPercentage,
-    int maximumMatches,
-    int downPyrs,
-    int searchExpansion,
-    int sourceIndex,
-    int method) {
+    int templateIndex) {
 
   // search the large images at the returned locations
   cv::Size sourceSize = source.size();
@@ -150,20 +103,23 @@ void TemplateMatcher::updateMatchingPoints(
     const Point2D &searchPoint = updatedSearchPoint(targetSize, locations, currMax, upPyrs);
 
     // Do next target if this target is found
-    if (isTargetFound(matchingPointList, searchPoint, searchExpansion, maximumMatches)) {
+    if (isTargetFound(matchingPointList, searchPoint)) {
       continue;
     }
 
     // set the source image's ROI to slightly larger than the target image,
     //  centred at the current point
-    cv::Rect searchRoi = makeSearchRoi(sourceSize, searchPoint, target, searchExpansion);
+    cv::Rect searchRoi = makeSearchRoi(sourceSize, searchPoint, target);
 
     // Invoke cv::matchTemplate
-    cv::Mat result = searchImage(source, target, searchRoi, resultSize, method);
+    cv::Mat result = searchImage(source, target, searchRoi, resultSize);
 
     // Find best match location
-    MatchingPoint matchPoint = findBestMatchLocation(result, target, searchRoi,
-        sourceIndex, matchPercentage, method);
+    MatchingPoint matchPoint = findBestMatchLocation(
+        result,
+        target,
+        searchRoi,
+        templateIndex);
 
     if (matchPoint.empty) {
       break;
@@ -197,9 +153,7 @@ Point2D TemplateMatcher::updatedSearchPoint(
  */
 bool TemplateMatcher::isTargetFound(
     const MatchingPointList & matchingPointList,
-    const Point2D &searchPoint,
-    int searchExpansion,
-    int maximumMatches) {
+    const Point2D &searchPoint) {
 
   if(maximumMatches > 1 && !matchingPointList.empty())
   {
@@ -226,17 +180,16 @@ cv::Mat TemplateMatcher::searchImage(
     const cv::Mat &source,
     const cv::Mat &target,
     const cv::Rect &searchRoi,
-    cv::Size &resultSize,
-    int method) {
+    cv::Size &resultSize) {
 
-  cv::Mat searchImage(source, searchRoi);
+  cv::Mat img(source, searchRoi);
 
   // perform the search on the large images
   resultSize.width = searchRoi.width - target.size().width + 1;
   resultSize.height = searchRoi.height - target.size().height + 1;
 
   cv::Mat result = cv::Mat(resultSize, CV_32FC1);
-  cv::matchTemplate(searchImage, target, result, method);
+  cv::matchTemplate(img, target, result, method);
 
   return result;
 }
@@ -246,8 +199,7 @@ cv::Mat TemplateMatcher::searchImage(
 cv::Rect TemplateMatcher::makeSearchRoi(
     const cv::Size &sourceSize,
     const Point2D &searchPoint,
-    const cv::Mat &target,
-    int searchExpansion) {
+    const cv::Mat &target) {
 
   cv::Rect searchRoi;
   searchRoi.x = searchPoint.x() - (target.size().width) / 2 - searchExpansion;
@@ -283,9 +235,7 @@ MatchingPoint TemplateMatcher::findBestMatchLocation(
     const cv::Mat &result,
     const cv::Mat &target,
     const cv::Rect &searchRoi,
-    int sourceIndex,
-    int matchPercentage,
-    int method) {
+    int templateIndex) {
 
   double minValue;
   double maxValue;
@@ -309,7 +259,7 @@ MatchingPoint TemplateMatcher::findBestMatchLocation(
   if(value >= matchPercentage)
   {
     // add the point to the list
-    return MatchingPoint(Point2D(loc.x, loc.y), value, sourceIndex);
+    return MatchingPoint(Point2D(loc.x, loc.y), value, templateIndex);
   }
   else
   {
@@ -318,10 +268,7 @@ MatchingPoint TemplateMatcher::findBestMatchLocation(
 }
 
 
-std::vector<Point2D> TemplateMatcher::multipleMinMaxLoc(
-    const cv::Mat &image,
-    int maximumMatches,
-    int method)
+std::vector<Point2D> TemplateMatcher::multipleMinMaxLoc(const cv::Mat &image)
 {
   std::vector<Point2D> locations(maximumMatches);
 

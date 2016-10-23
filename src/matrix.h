@@ -1,3 +1,5 @@
+#ifndef __MATRIX_H__
+#define __MATRIX_H__ 
 
 #include "opencv.h"
 #include "../inc/Matrix.h"
@@ -157,3 +159,5 @@ public:
 
    */
 };
+
+#endif
