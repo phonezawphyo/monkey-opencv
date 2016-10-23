@@ -1,7 +1,7 @@
 {
   "name": "monkey-opencv",
   "version": "1.0.0",
-  "description": "Provides method to search subimage inside an image using opencv cv::matchTemplate and cv::minMaxLoc.",
+  "description": "Provides methods (image search etc.) built upon opencv.",
   "main": "index.js",
   "gypfile": true,
   "scripts": {
@@ -16,11 +16,17 @@
     "nodejs",
     "fast",
     "image",
+    "imread",
+    "readimage",
+    "matrix",
     "template",
     "matcher",
     "search",
     "image search",
-    "opencv"
+    "opencv",
+    "matchTemplate",
+    "minMaxLoc",
+    "template matching"
   ],
   "author": "Phone Z Phyo",
   "license": "MIT",
