@@ -57,9 +57,8 @@ ImageDataStream.prototype.end = function(b){
   });
 }
 
-var nativeFindSubImage = bindings.findSubImage;
-
 bindings.MonkeyAlgo = {
+  readImage: bindings.readImage,
 
   findSubImage: function(options, fn) {
 
@@ -153,7 +152,7 @@ bindings.MonkeyAlgo = {
           throw new TypeError('method (0 <= n <= 5)');
         }
 
-        nativeFindSubImage(
+        bindings.findSubImage(
           options.source,
           options.templates,
           options.matchPercent,

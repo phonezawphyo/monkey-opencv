@@ -2,7 +2,7 @@ const constants = require('../index.js').Constants;
 const search = require('../index.js').MonkeyAlgo;
 var assert = require('assert');
 
-describe('Smoke FindSubImage', function () {
+describe('Smoke MonkeyAlgo.findSubImage', function () {
   it('should find single subimage (callback)', function (done) {
     search.findSubImage({
       source: 'spec/fixtures/screen.png',
