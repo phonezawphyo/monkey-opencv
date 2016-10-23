@@ -46,7 +46,7 @@
     "mocha": "^3.1.2"
   },
   "binary": {
-    "module_name": "fast_template_matcher",
+    "module_name": "monkey_opencv",
     "module_path": "./build/{module_name}/v{version}/{configuration}/{node_abi}-{platform}-{arch}/",
     "remote_path": "./{module_name}/v{version}/{configuration}/",
     "package_name": "{node_abi}-{platform}-{arch}.tar.gz",

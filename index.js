@@ -14,10 +14,12 @@ var Matrix = bindings.Matrix,
 	ImageStream,
 	ImageDataStream;
 
+
 Matrix.prototype.inspect = function(){
   var size = (this.size()||[]).join('x');
   return "[ Matrix " + size + " ]";
 }
+
 
 ImageStream = bindings.ImageStream = function(){
   this.writable = true;
