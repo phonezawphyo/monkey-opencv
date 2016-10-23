@@ -1,6 +1,8 @@
 # MonkeyOpencv
 
-Provides methods built upon opencv.
+> Provides methods built upon opencv. 
+
+The following modules are included.
 
 * MonkeyOpencv (Main module)
 * Matrix (Wrapper for opencv cv::Mat)
