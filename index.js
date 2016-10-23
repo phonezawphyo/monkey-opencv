@@ -6,7 +6,7 @@ var util = require('util');
 var binding_path = binary.find(path.resolve(path.join(__dirname,'./package.json')));
 var async = require('async');
 var bindings = require(binding_path);
-var MonkeyAlgo = require('./monkey_algo');
+var MonkeyOpencv = require('./monkey_opencv');
 
 var Constants = bindings.Constants;
 
@@ -58,6 +58,6 @@ ImageDataStream.prototype.end = function(b){
   });
 }
 
-bindings.MonkeyAlgo = MonkeyAlgo;
+bindings.MonkeyOpencv = MonkeyOpencv;
 
 module.exports = bindings;

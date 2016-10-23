@@ -1,16 +1,16 @@
 {
-  "name": "fast-template-matcher",
-  "version": "1.0.2",
-  "description": "Search subimage inside an image using opencv cv::matchTemplate and cv::minMaxLoc.",
+  "name": "monkey-opencv",
+  "version": "1.0.0",
+  "description": "Provides method to search subimage inside an image using opencv cv::matchTemplate and cv::minMaxLoc.",
   "main": "index.js",
   "gypfile": true,
   "scripts": {
-    "test": "mocha -R spec spec",
+    "test": "mocha -R spec spec --recursive",
     "install": "node-pre-gyp install --fallback-to-build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/phonezawphyo/node-fast-template-matcher.git"
+    "url": "git+https://github.com/phonezawphyo/monkey-opencv.git"
   },
   "keywords": [
     "nodejs",
@@ -25,9 +25,9 @@
   "author": "Phone Z Phyo",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/phonezawphyo/node-fast-template-matcher/issues"
+    "url": "https://github.com/phonezawphyo/monkey-opencv/issues"
   },
-  "homepage": "https://github.com/phonezawphyo/node-fast-template-matcher#readme",
+  "homepage": "https://github.com/phonezawphyo/monkey-opencv#readme",
   "dependencies": {
     "async": "^2.1.2",
     "aws-sdk": "^2.6.9",

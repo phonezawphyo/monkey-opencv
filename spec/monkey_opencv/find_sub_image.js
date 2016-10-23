@@ -1,11 +1,11 @@
-const constants = require('../index.js').Constants;
-const MonkeyAlgo = require('../index.js').MonkeyAlgo;
+const constants = require('../../index.js').Constants;
+const MonkeyOpencv = require('../../index.js').MonkeyOpencv;
 var assert = require('assert');
 var fs = require('fs');
 
-describe('Smoke MonkeyAlgo.findSubImage', function () {
+describe('Smoke MonkeyOpencv.findSubImage', function () {
   it('should find single subimage (callback)', function (done) {
-    MonkeyAlgo.findSubImage({
+    MonkeyOpencv.findSubImage({
       source: 'spec/fixtures/screen.png',
       templates: ['spec/fixtures/g.png'],
       matchPercent: 70,
@@ -25,7 +25,7 @@ describe('Smoke MonkeyAlgo.findSubImage', function () {
   });
 
   it('should find two subimages, not find one invalid image (promise)', function () {
-    return MonkeyAlgo.findSubImage({
+    return MonkeyOpencv.findSubImage({
       source: 'spec/fixtures/screen.png',
       templates: [
         'spec/fixtures/g.png',
@@ -54,7 +54,7 @@ describe('Smoke MonkeyAlgo.findSubImage', function () {
   });
 
   it('should find car template (from String filename)', function (done) {
-    MonkeyAlgo.findSubImage({
+    MonkeyOpencv.findSubImage({
       source: 'spec/fixtures/car1.jpg',
       templates: ['spec/fixtures/car1_template.jpg'],
       matchPercent: 99,
@@ -76,8 +76,8 @@ describe('Smoke MonkeyAlgo.findSubImage', function () {
   it('should find car template (from Buffer and Matrix)', function (done) {
     var img = fs.readFileSync('spec/fixtures/car1.jpg');
 
-    MonkeyAlgo.readImage('spec/fixtures/car1_template.jpg', function(err, tmpl1) {
-      MonkeyAlgo.findSubImage({
+    MonkeyOpencv.readImage('spec/fixtures/car1_template.jpg', function(err, tmpl1) {
+      MonkeyOpencv.findSubImage({
         source: img,
         templates: [tmpl1],
         matchPercent: 99,
