@@ -1,7 +1,7 @@
 {
   "targets": [ 
     { 
-      "target_name": "fast_template_matcher",
+      "target_name": "monkey_opencv",
 
       "sources": [
          "src/addon.cc",
