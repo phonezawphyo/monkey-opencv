@@ -29,7 +29,7 @@ describe('Smoke OpenCV', function () {
       assert.ok(im);
       assert.equal(im.width(), 480);
       assert.equal(im.height(), 800);
-      assert.equal(im.channels(), 4);
+      assert.equal(im.channels(), 3);
       assert.equal(im.empty(), false);
       done();
     })
@@ -41,31 +41,9 @@ describe('Smoke OpenCV', function () {
         assert.ok(im);
         assert.equal(im.width(), 480);
         assert.equal(im.height(), 800);
-        assert.equal(im.channels(), 4);
+        assert.equal(im.channels(), 3);
         assert.equal(im.empty(), false);
         done();
-      });
-    });
-  });
-
-  it("should read image to and from buffer (sync)", function(done){
-    var buf = fs.readFileSync('spec/fixtures/screen.png')
-    cv.readImage(buf.slice(0), function(err, mat){
-      var buf0 = mat.toBuffer()
-      assert.ok(buf0);
-      done();
-    });
-  });
-
-  it("should read image to and from buffer (async)", function(done){
-    fs.readFile('spec/fixtures/screen.png', function(err,buf){
-      cv.readImage(buf.slice(0), function(err, mat){
-        mat.toBuffer(function(err, buff){
-          assert.ifError(err)
-          assert.ok(buf)
-          assert.ok(buf.length > 100)
-          done();
-        });
       });
     });
   });
@@ -90,5 +68,27 @@ describe('Smoke OpenCV', function () {
     });
 
     fs.createReadStream('spec/fixtures/screen.png').pipe(s);
+  });
+
+  it("should write to buffer (sync)", function(done){
+    var buf = fs.readFileSync('spec/fixtures/screen.png');
+    cv.readImage(buf.slice(0), function(err, mat){
+      var buf0 = mat.toBuffer();
+      assert.ok(buf0);
+      done();
+    });
+  });
+
+  it("should write to buffer (async)", function(done){
+    fs.readFile('spec/fixtures/screen.png', function(err,buf){
+      cv.readImage(buf.slice(0), function(err, mat){
+        mat.toBuffer(function(err, buff){
+          assert.ifError(err)
+          assert.ok(buf)
+          assert.ok(buf.length > 100)
+          done();
+        });
+      });
+    });
   });
 });
