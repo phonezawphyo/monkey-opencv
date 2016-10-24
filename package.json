@@ -1,6 +1,6 @@
 {
   "name": "monkey-opencv",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Provides methods (image search etc.) built upon opencv.",
   "main": "index.js",
   "gypfile": true,
