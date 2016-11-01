@@ -2,7 +2,7 @@
 #define __MATRIX_H__ 
 
 #include "opencv.h"
-#include "../inc/Matrix.h"
+#include "../inc/matrix.h"
 
 class Matrix: public fast_template_matcher::Matrix{
 public:
